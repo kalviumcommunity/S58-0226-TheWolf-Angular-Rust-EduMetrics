@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Call Demo - Angular to Rust</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        
+        .demo-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .code-panel {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #334155;
+        }
+        
+        .panel-icon {
+            font-size: 2em;
+            margin-right: 15px;
+        }
+        
+        .panel-title {
+            color: white;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        
+        .panel-tech {
+            color: #94a3b8;
+            font-size: 0.9em;
+            margin-left: auto;
+        }
+        
+        pre {
+            margin: 0;
+            color: #e2e8f0;
+            font-size: 0.95em;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        
+        .keyword { color: #c792ea; }
+        .string { color: #c3e88d; }
+        .function { color: #82aaff; }
+        .comment { color: #546e7a; font-style: italic; }
+        .number { color: #f78c6c; }
+        .operator { color: #89ddff; }
+        
+        .demo-button {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            margin: 40px auto;
+            padding: 20px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .demo-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+        }
+        
+        .demo-button:active {
+            transform: translateY(0);
+        }
+        
+        .demo-button.loading {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        
+        .flow-visualization {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 40px 0;
+        }
+        
+        .flow-step {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            margin: 15px 0;
+            background: white;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            opacity: 0.3;
+            transition: all 0.5s ease;
+        }
+        
+        .flow-step.active {
+            opacity: 1;
+            border-left-color: #48bb78;
+            animation: pulse 1s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        
+        .flow-step.active .step-number {
+            background: #48bb78;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-title {
+            font-weight: bold;
+            color: #2d3748;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+        
+        .step-detail {
+            color: #718096;
+            font-size: 0.95em;
+        }
+        
+        .response-box {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .response-box.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .response-header {
+            color: #48bb78;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .json-output {
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.8;
+        }
+        
+        .success-message {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+            font-size: 1.1em;
+        }
+        
+        .success-message.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Live API Call Demo</h1>
+        <p class="subtitle">Watch the complete request flow: Angular → Rust → PostgreSQL → Response</p>
+        
+        <div class="demo-section">
+            <!-- Angular Frontend Code -->
+            <div class="code-panel">
+                <div class="panel-header">
+                    <span class="panel-icon">🎨</span>
+                    <div>
+                        <div class="panel-title">Angular Frontend</div>
+                        <div class="panel-tech">TypeScript + HttpClient</div>
+                    </div>
+                </div>
+                <pre><code><span class="comment">// product.service.ts</span>
+<span class="keyword">import</span> { HttpClient } <span class="keyword">from</span> <span class="string">'@angular/core'</span>;
+
+<span class="keyword">export class</span> <span class="function">ProductService</span> {
+  <span class="keyword">constructor</span>(<span class="keyword">private</span> http: HttpClient) {}
+
+  <span class="function">getProducts</span>() {
+    <span class="comment">// Make HTTP GET request</span>
+    <span class="keyword">return this</span>.http.<span class="function">get</span>(<span class="string">'/api/products'</span>);
+  }
+}
+
+<span class="comment">// component calls this:</span>
+<span class="keyword">this</span>.productService.<span class="function">getProducts</span>()
+  .<span class="function">subscribe</span>(data <span class="operator">=></span> {
+    <span class="keyword">this</span>.products <span class="operator">=</span> data;
+    console.<span class="function">log</span>(<span class="string">'Products loaded!'</span>);
+  });</code></pre>
+            </div>
+            
+            <!-- Rust Backend Code -->
+            <div class="code-panel">
+                <div class="panel-header">
+                    <span class="panel-icon">⚙️</span>
+                    <div>
+                        <div class="panel-title">Rust Backend</div>
+                        <div class="panel-tech">Actix-web + SQLx</div>
+                    </div>
+                </div>
+                <pre><code><span class="comment">// main.rs</span>
+<span class="keyword">use</span> actix_web::{get, HttpResponse};
+<span class="keyword">use</span> sqlx::PgPool;
+
+<span class="keyword">#[get(<span class="string">"/api/products"</span>)]</span>
+<span class="keyword">async fn</span> <span class="function">get_products</span>(
+    pool: PgPool
+) <span class="operator">-></span> HttpResponse {
+    <span class="comment">// Query PostgreSQL</span>
+    <span class="keyword">let</span> products <span class="operator">=</span> sqlx::<span class="function">query!</span>(
+        <span class="string">"SELECT * FROM products"</span>
+    )
+    .<span class="function">fetch_all</span>(<span class="operator">&</span>pool)
+    .<span class="keyword">await</span>?;
+    
+    <span class="comment">// Return JSON</span>
+    HttpResponse::<span class="function">Ok</span>().<span class="function">json</span>(products)
+}</code></pre>
+            </div>
+        </div>
+        
+        <!-- Click to Demo Button -->
+        <button class="demo-button" id="demoBtn" onclick="runDemo()">
+            ▶️ Click to Run API Call Demo
+        </button>
+        
+        <!-- Flow Visualization -->
+        <div class="flow-visualization">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #2d3748;">Request Flow Visualization</h2>
+            
+            <div class="flow-step" id="step1">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title">User Clicks Button</div>
+                    <div class="step-detail">Button click event triggers Angular component method</div>
+                </div>
+            </div>
+            
+            <div class="flow-step" id="step2">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">Component Calls Service</div>
+                    <div class="step-detail">productService.getProducts() is invoked</div>
+                </div>
+            </div>
+            
+            <div class="flow-step" id="step3">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">HttpClient Sends GET Request</div>
+                    <div class="step-detail">HTTP GET to http://localhost:8080/api/products</div>
+                </div>
+            </div>
+            
+            <div class="flow-step" id="step4">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">Rust API Receives Request</div>
+                    <div class="step-detail">Actix-web handler get_products() is called</div>
+                </div>
+            </div>
+            
+            <div class="flow-step" id="step5">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <div class="step-title">Rust Queries Database</div>
+                    <div class="step-detail">SQLx executes: SELECT * FROM products</div>
+                </div>
+            </div>
+            
+            <div class="flow-step" id="step6">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <div class="step-title">PostgreSQL Returns Data</div>
+                    <div class="step-detail">Database sends product records back to Rust</div>
+                </div>
+            </div>
+            
+            <div class="flow-step" id="step7">
+                <div class="step-number">7</div>
+                <div class="step-content">
+                    <div class="step-title">Rust Formats JSON Response</div>
+                    <div class="step-detail">Products converted to JSON format</div>
+                </div>
+            </div>
+            
+            <div class="flow-step" id="step8">
+                <div class="step-number">8</div>
+                <div class="step-content">
+                    <div class="step-title">HTTP Response Sent to Angular</div>
+                    <div class="step-detail">JSON data travels back to frontend</div>
+                </div>
+            </div>
+            
+            <div class="flow-step" id="step9">
+                <div class="step-number">9</div>
+                <div class="step-content">
+                    <div class="step-title">Service Receives Response</div>
+                    <div class="step-detail">Observable emits the product data</div>
+                </div>
+            </div>
+            
+            <div class="flow-step" id="step10">
+                <div class="step-number">10</div>
+                <div class="step-content">
+                    <div class="step-title">Component Updates UI</div>
+                    <div class="step-detail">Angular automatically re-renders the product list</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Response Box -->
+        <div class="response-box" id="responseBox">
+            <div class="response-header">✅ API Response Received (Status: 200 OK)</div>
+            <div class="json-output" id="jsonOutput"></div>
+        </div>
+        
+        <div class="success-message" id="successMsg">
+            🎉 Success! Products loaded in 127ms
+        </div>
+    </div>
+    
+    <script>
+        let currentStep = 0;
+        
+        function runDemo() {
+            const btn = document.getElementById('demoBtn');
+            const responseBox = document.getElementById('responseBox');
+            const successMsg = document.getElementById('successMsg');
+            
+            // Reset
+            currentStep = 0;
+            for(let i = 1; i <= 10; i++) {
+                document.getElementById('step' + i).classList.remove('active');
+            }
+            responseBox.classList.remove('show');
+            successMsg.classList.remove('show');
+            
+            // Disable button
+            btn.classList.add('loading');
+            btn.textContent = '⏳ Running API Call...';
+            btn.disabled = true;
+            
+            // Animate steps
+            const interval = setInterval(() => {
+                currentStep++;
+                if(currentStep <= 10) {
+                    document.getElementById('step' + currentStep).classList.add('active');
+                    
+                    // Show response at step 8
+                    if(currentStep === 8) {
+                        showResponse();
+                    }
+                    
+                    // Show success at step 10
+                    if(currentStep === 10) {
+                        setTimeout(() => {
+                            successMsg.classList.add('show');
+                        }, 500);
+                    }
+                } else {
+                    clearInterval(interval);
+                    // Re-enable button
+                    setTimeout(() => {
+                        btn.classList.remove('loading');
+                        btn.textContent = '▶️ Click to Run API Call Demo Again';
+                        btn.disabled = false;
+                    }, 1000);
+                }
+            }, 600);
+        }
+        
+        function showResponse() {
+            const responseBox = document.getElementById('responseBox');
+            const jsonOutput = document.getElementById('jsonOutput');
+            
+            const sampleData = {
+                data: [
+                    {
+                        id: 1,
+                        name: "Laptop",
+                        price: 999.99,
+                        description: "High-performance laptop"
+                    },
+                    {
+                        id: 2,
+                        name: "Wireless Mouse",
+                        price: 29.99,
+                        description: "Ergonomic wireless mouse"
+                    },
+                    {
+                        id: 3,
+                        name: "Mechanical Keyboard",
+                        price: 149.99,
+                        description: "RGB mechanical keyboard"
+                    }
+                ]
+            };
+            
+            jsonOutput.textContent = JSON.stringify(sampleData, null, 2);
+            responseBox.classList.add('show');
+        }
+    </script>
+</body>
+</html>
