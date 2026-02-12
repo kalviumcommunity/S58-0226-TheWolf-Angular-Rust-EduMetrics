@@ -555,3 +555,5 @@ This architecture provides:
 ![API Demo Call](./screenshots/api-demo-screenshot.png)
 
 *Full system architecture showing Angular frontend, Rust backend, and PostgreSQL database with request flow*
+
+echo "PR created for Assignment 3.3 submission" >> README.md
