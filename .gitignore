@@ -1,0 +1,27 @@
+cat > .gitignore << 'EOF'
+# Angular
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.vscode/
+
+# Rust
+backend/target/
+backend/Cargo.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+*.exe
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+EOF
