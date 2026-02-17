@@ -209,3 +209,70 @@ UI shows confirmation
 - ✅ **Maintainability**: Easy to find and fix bugs
 - ✅ **Team Collaboration**: Multiple developers can work without conflicts
 - ✅ **Type Safety**: TypeScript + Rust catch errors at compile time
+
+
+## Assignment 3.23 - Basic Actix Backend with Health Check
+
+### What Was Built
+A minimal Rust backend using Actix-Web with three working endpoints that serve as the foundation for the EduMetrics API.
+
+### Why Health Checks Matter
+| Use Case | Description |
+|----------|-------------|
+| Load Balancers | Verify server is alive before routing traffic |
+| CI/CD Pipelines | Confirm deployment succeeded |
+| Monitoring Tools | Check uptime and availability |
+| Frontend Apps | Show backend connection status to users |
+
+### API Endpoints
+
+| Method | Endpoint | Description | Response |
+|--------|----------|-------------|----------|
+| GET | `/` | Root status message | Plain text |
+| GET | `/health` | Health check | JSON with status |
+| GET | `/status` | Detailed server status | JSON with endpoints |
+
+### Health Check Response
+```json
+{
+  "status": "OK",
+  "message": "Backend is operational",
+  "service": "EduMetrics Student Analytics Engine",
+  "version": "1.0.0"
+}
+```
+
+### Server Structure
+```
+backend/
+├── src/
+│   └── main.rs          # Server entry point
+│       ├── root_status()      # GET /
+│       ├── health_check()     # GET /health
+│       └── server_status()    # GET /status
+└── Cargo.toml           # Dependencies
+```
+
+### How to Run Backend
+```bash
+cd backend
+cargo run
+# Server starts at http://localhost:8080
+# Health check at http://localhost:8080/health
+```
+
+### How Frontend Will Use Health Check
+```typescript
+// Angular service will call health endpoint
+checkBackendHealth(): Observable {
+  return this.http.get('http://localhost:8080/health');
+}
+```
+
+### Best Practices Followed
+- ✅ Fast response (no heavy logic)
+- ✅ Structured JSON responses
+- ✅ Consistent endpoint naming
+- ✅ Structured startup logging
+- ✅ Modular handler functions
+- ✅ No external dependencies in health check
