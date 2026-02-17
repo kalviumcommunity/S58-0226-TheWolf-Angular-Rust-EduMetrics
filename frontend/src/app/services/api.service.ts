@@ -1,27 +1,38 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
-  private baseUrl = 'http://localhost:8080/api';
+  
+  // Using environment variable instead of hardcoded URL
+  private baseUrl = environment.apiBaseUrl;
+  private apiVersion = environment.apiVersion;
+  
+  constructor(private http: HttpClient) {
+    // Log environment info in development only
+    if (environment.enableLogging) {
+      console.log(`API Service initialized`);
+      console.log(`Environment: ${environment.production ? 'Production' : 'Development'}`);
+      console.log(`API Base URL: ${this.baseUrl}`);
+    }
+  }
 
-  constructor(private http: HttpClient) { }
+  // Health check using environment URL
+  checkHealth(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/health`);
+  }
 
-  // Example: Get all students
+  // Get all students
   getStudents(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/students`);
+    return this.http.get<any[]>(`${this.baseUrl}/api/students`);
   }
 
-  // Example: Get student by ID
+  // Get student by ID
   getStudentById(id: number): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/students/${id}`);
-  }
-
-  // Example: Create new student
-  createStudent(student: any): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/students`, student);
+    return this.http.get<any>(`${this.baseUrl}/api/students/${id}`);
   }
 }

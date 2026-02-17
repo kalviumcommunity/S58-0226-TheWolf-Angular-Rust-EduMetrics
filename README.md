@@ -276,3 +276,94 @@ checkBackendHealth(): Observable {
 - ✅ Structured startup logging
 - ✅ Modular handler functions
 - ✅ No external dependencies in health check
+
+---
+
+## Assignment 3.46 - Environment Variables & Production Config
+
+### Why Environment Configuration Matters
+| Problem | Solution |
+|---------|----------|
+| Hardcoded API URLs | Use environment variables |
+| Secrets in code | Use .env files (never committed) |
+| Different dev/prod settings | Separate config files |
+| Team onboarding confusion | Document all required variables |
+
+---
+
+### Angular Environment Setup
+
+**Development** (`ng serve`):
+- Uses `src/environments/environment.ts`
+- API URL: `http://localhost:8080`
+- Debug mode: enabled
+- Logging: enabled
+
+**Production** (`ng build --configuration production`):
+- Uses `src/environments/environment.prod.ts`
+- API URL: `https://api.edumetrics.com`
+- Debug mode: disabled
+- Logging: disabled
+
+---
+
+### Rust Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SERVER_HOST` | Server host address | `127.0.0.1` |
+| `SERVER_PORT` | Server port number | `8080` |
+| `APP_ENV` | Environment name | `development` |
+| `DATABASE_URL` | PostgreSQL connection | Required in prod |
+| `JWT_SECRET` | JWT signing secret | Required in prod |
+| `RUST_LOG` | Logging level | `debug` |
+| `ALLOWED_ORIGINS` | CORS allowed origins | `http://localhost:4200` |
+| `API_VERSION` | API version | `v1` |
+
+---
+
+### Setup Instructions
+
+**Backend:**
+```bash
+# Copy example env file
+cp backend/.env.example backend/.env
+
+# Edit with your values
+nano backend/.env
+
+# Run server
+cd backend
+cargo run
+```
+
+**Frontend:**
+```bash
+# Development (uses environment.ts automatically)
+cd frontend
+ng serve
+
+# Production build
+ng build --configuration production
+```
+
+---
+
+### Security Rules
+- ✅ `.env` files are in `.gitignore`
+- ✅ Only `.env.example` is committed
+- ✅ No secrets in source code
+- ✅ Production config endpoint is blocked
+- ✅ Different settings per environment
+
+---
+
+### Development vs Production
+
+| Setting | Development | Production |
+|---------|------------|------------|
+| API URL | localhost:8080 | api.edumetrics.com |
+| Logging | Verbose | Minimal |
+| Debug Mode | Enabled | Disabled |
+| Config Endpoint | Accessible | Blocked |
+| JWT Secret | Dev value | Strong secret |
