@@ -1,9 +1,12 @@
-use actix_web::{get, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use serde::Serialize;
 use std::env;
 
+mod models;
+use models::*;
+
 // ============================================================
-// RESPONSE STRUCTS
+// HEALTH CHECK ENDPOINT
 // ============================================================
 #[derive(Serialize)]
 struct HealthResponse {
@@ -11,120 +14,105 @@ struct HealthResponse {
     message: String,
     service: String,
     version: String,
-    environment: String,
 }
 
-#[derive(Serialize)]
-struct StatusResponse {
-    status: String,
-    environment: String,
-    host: String,
-    port: String,
-    endpoints: Vec<String>,
-}
-
-#[derive(Serialize)]
-struct ConfigResponse {
-    environment: String,
-    api_version: String,
-    log_level: String,
-    cors_origins: String,
-}
-
-// ============================================================
-// ROOT ENDPOINT
-// ============================================================
-#[get("/")]
-async fn root_status() -> impl Responder {
-    let app_env = env::var("APP_ENV")
-        .unwrap_or_else(|_| "development".to_string());
-    
-    format!(
-        "EduMetrics API is Running! Environment: {} | Visit /health for status.",
-        app_env
-    )
-}
-
-// ============================================================
-// HEALTH CHECK ENDPOINT
-// ============================================================
 #[get("/health")]
 async fn health_check() -> impl Responder {
-    let app_env = env::var("APP_ENV")
-        .unwrap_or_else(|_| "development".to_string());
-    
     let response = HealthResponse {
         status: "OK".to_string(),
         message: "Backend is operational".to_string(),
         service: "EduMetrics Student Analytics Engine".to_string(),
-        version: env::var("API_VERSION")
-            .unwrap_or_else(|_| "1.0.0".to_string()),
-        environment: app_env,
+        version: "1.0.0".to_string(),
     };
-    
     HttpResponse::Ok().json(response)
 }
 
 // ============================================================
-// STATUS ENDPOINT
+// DEMO ENDPOINTS USING MODELS
 // ============================================================
-#[get("/status")]
-async fn server_status() -> impl Responder {
-    let host = env::var("SERVER_HOST")
-        .unwrap_or_else(|_| "127.0.0.1".to_string());
-    let port = env::var("SERVER_PORT")
-        .unwrap_or_else(|_| "8080".to_string());
-    let app_env = env::var("APP_ENV")
-        .unwrap_or_else(|_| "development".to_string());
-    
-    let response = StatusResponse {
-        status: "running".to_string(),
-        environment: app_env,
-        host,
-        port,
-        endpoints: vec![
-            "GET /".to_string(),
-            "GET /health".to_string(),
-            "GET /status".to_string(),
-            "GET /config".to_string(),
-        ],
+
+/// Get all students (mock data)
+#[get("/api/students")]
+async fn get_students() -> impl Responder {
+    let students = vec![
+        Student {
+            id: 1,
+            name: "Alice Johnson".to_string(),
+            email: "alice@example.com".to_string(),
+            enrollment_date: "2024-01-15".to_string(),
+            status: EnrollmentStatus::Active,
+            gpa: 3.8,
+            performance_level: PerformanceLevel::Excellent,
+        },
+        Student {
+            id: 2,
+            name: "Bob Smith".to_string(),
+            email: "bob@example.com".to_string(),
+            enrollment_date: "2024-01-20".to_string(),
+            status: EnrollmentStatus::Active,
+            gpa: 3.2,
+            performance_level: PerformanceLevel::Good,
+        },
+    ];
+
+    let response = StudentListResponse {
+        total: students.len(),
+        students,
     };
-    
+
     HttpResponse::Ok().json(response)
 }
 
-// ============================================================
-// CONFIG ENDPOINT (Development Only)
-// ============================================================
-#[get("/config")]
-async fn show_config() -> impl Responder {
-    let app_env = env::var("APP_ENV")
-        .unwrap_or_else(|_| "development".to_string());
+/// Create a new student (demonstrates request validation)
+#[post("/api/students")]
+async fn create_student(req: web::Json<CreateStudentRequest>) -> impl Responder {
+    // In real app, save to database here
     
-    // Only show config in development
-    if app_env == "production" {
-        return HttpResponse::Forbidden().json(
-            serde_json::json!({
-                "error": "Config endpoint disabled in production"
-            })
-        );
-    }
-    
-    let response = ConfigResponse {
-        environment: app_env,
-        api_version: env::var("API_VERSION")
-            .unwrap_or_else(|_| "v1".to_string()),
-        log_level: env::var("LOG_LEVEL")
-            .unwrap_or_else(|_| "debug".to_string()),
-        cors_origins: env::var("ALLOWED_ORIGINS")
-            .unwrap_or_else(|_| "http://localhost:4200".to_string()),
+    let response = StudentResponse {
+        id: 1,
+        name: req.name.clone(),
+        email: req.email.clone(),
+        status: EnrollmentStatus::Active,
+        message: "Student created successfully".to_string(),
     };
-    
-    HttpResponse::Ok().json(response)
+
+    HttpResponse::Created().json(response)
+}
+
+/// Get student analytics by ID
+#[get("/api/students/{id}/analytics")]
+async fn get_student_analytics(id: web::Path<i32>) -> impl Responder {
+    let analytics = StudentAnalytics {
+        student_id: *id,
+        student_name: "Alice Johnson".to_string(),
+        average_score: 88.5,
+        attendance_rate: 95.0,
+        performance_level: PerformanceLevel::Excellent,
+        risk_indicators: vec![],
+    };
+
+    HttpResponse::Ok().json(analytics)
+}
+
+/// Demo of enum pattern matching
+#[get("/api/demo/status/{status}")]
+async fn demo_status_matching(status: web::Path<String>) -> impl Responder {
+    let message = match status.as_str() {
+        "active" => "Student is actively enrolled",
+        "suspended" => "Student account is suspended",
+        "graduated" => "Student has graduated",
+        "withdrawn" => "Student has withdrawn",
+        _ => "Unknown status",
+    };
+
+    HttpResponse::Ok().json(serde_json::json!({
+        "status": status.as_str(),
+        "message": message
+    }))
 }
 
 // ============================================================
-// STRUCTURED STARTUP LOG
+// STARTUP LOG
 // ============================================================
 #[derive(Serialize)]
 struct StartupLog {
@@ -132,7 +120,6 @@ struct StartupLog {
     message: String,
     environment: String,
     server_url: String,
-    health_endpoint: String,
 }
 
 // ============================================================
@@ -140,39 +127,28 @@ struct StartupLog {
 // ============================================================
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    
-    // Load .env file
     dotenv::dotenv().ok();
-    
-    // Read environment variables
-    let host = env::var("SERVER_HOST")
-        .unwrap_or_else(|_| "127.0.0.1".to_string());
-    let port = env::var("SERVER_PORT")
-        .unwrap_or_else(|_| "8080".to_string());
-    let app_env = env::var("APP_ENV")
-        .unwrap_or_else(|_| "development".to_string());
-    
-    let server_url = format!("http://{}:{}", host, port);
+
+    let host = env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let port = env::var("SERVER_PORT").unwrap_or_else(|_| "8080".to_string());
     let bind_address = format!("{}:{}", host, port);
-    
-    // Structured startup log
+
     let startup_log = StartupLog {
         level: "INFO".to_string(),
-        message: "Starting EduMetrics Backend Server".to_string(),
-        environment: app_env.clone(),
-        server_url: server_url.clone(),
-        health_endpoint: format!("{}/health", server_url),
+        message: "EduMetrics Backend with Type-Safe Models".to_string(),
+        environment: "development".to_string(),
+        server_url: format!("http://{}:{}", host, port),
     };
-    
+
     println!("{}", serde_json::to_string(&startup_log).unwrap());
-    
-    // Start server
+
     HttpServer::new(|| {
         App::new()
-            .service(root_status)
             .service(health_check)
-            .service(server_status)
-            .service(show_config)
+            .service(get_students)
+            .service(create_student)
+            .service(get_student_analytics)
+            .service(demo_status_matching)
     })
     .bind(&bind_address)?
     .run()
