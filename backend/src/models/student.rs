@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use chrono::NaiveDate;
 
 // ============================================================
 // ENUMS - Prevent Invalid States
@@ -36,19 +38,46 @@ pub enum AttendanceStatus {
 }
 
 // ============================================================
-// STUDENT ENTITY - Main Domain Model
+// STUDENT ENTITY - Main Domain Model (DATABASE VERSION)
 // ============================================================
 
-/// Complete student record
-#[derive(Debug, Serialize, Deserialize, Clone)]
+/// Complete student record from database
+/// Note: Enums are stored as strings in PostgreSQL
+#[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
 pub struct Student {
     pub id: i32,
     pub name: String,
     pub email: String,
-    pub enrollment_date: String,
-    pub status: EnrollmentStatus,
+    pub enrollment_date: NaiveDate,
+    pub status: String,
     pub gpa: f32,
-    pub performance_level: PerformanceLevel,
+    pub performance_level: String,
+}
+
+// Helper methods to convert between database strings and enums
+impl Student {
+    /// Convert status string to enum
+    pub fn get_status_enum(&self) -> EnrollmentStatus {
+        match self.status.as_str() {
+            "active" => EnrollmentStatus::Active,
+            "suspended" => EnrollmentStatus::Suspended,
+            "graduated" => EnrollmentStatus::Graduated,
+            "withdrawn" => EnrollmentStatus::Withdrawn,
+            _ => EnrollmentStatus::Active, // Default
+        }
+    }
+
+    /// Convert performance_level string to enum
+    pub fn get_performance_enum(&self) -> PerformanceLevel {
+        match self.performance_level.as_str() {
+            "excellent" => PerformanceLevel::Excellent,
+            "good" => PerformanceLevel::Good,
+            "average" => PerformanceLevel::Average,
+            "needsimprovement" => PerformanceLevel::NeedsImprovement,
+            "atrisk" => PerformanceLevel::AtRisk,
+            _ => PerformanceLevel::Average, // Default
+        }
+    }
 }
 
 // ============================================================
@@ -60,7 +89,7 @@ pub struct Student {
 pub struct CreateStudentRequest {
     pub name: String,
     pub email: String,
-    pub enrollment_date: String,
+    pub enrollment_date: NaiveDate,
 }
 
 /// Request to update student information
