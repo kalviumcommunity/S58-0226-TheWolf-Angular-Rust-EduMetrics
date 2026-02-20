@@ -1,3 +1,5 @@
+-- //src/routes/students.rs and src/routes/mod.rs
+-- migrations/20240101000000_create_students_table.sql
 -- ============================================================
 -- STUDENTS TABLE
 -- ============================================================

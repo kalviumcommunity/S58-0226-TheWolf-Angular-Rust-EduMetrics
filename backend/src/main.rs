@@ -1,11 +1,13 @@
-use actix_web::{get, post, middleware, web, App, HttpResponse, HttpServer, Responder}; 
-use chrono::NaiveDate; 
+// src/main.rs
+use actix_web::{get, post, middleware, web, App, HttpResponse, HttpServer, Responder};
+use chrono::NaiveDate;
 use serde::Serialize;
 use std::env;
 
 mod models;
 mod db;
 mod handlers;
+mod errors;      // ← NEW: register our custom error module
 
 use models::*;
 
@@ -62,7 +64,6 @@ struct SerdeDemo {
     example_json: serde_json::Value,
 }
 
-/// Demonstrate serialization (Rust → JSON)
 #[get("/demo/serialize")]
 async fn demo_serialize() -> impl Responder {
     let example = StudentResponse {
@@ -72,11 +73,9 @@ async fn demo_serialize() -> impl Responder {
         status: EnrollmentStatus::Active,
         message: "This struct was serialized to JSON by Serde".to_string(),
     };
-    
     HttpResponse::Ok().json(example)
 }
 
-/// Demonstrate deserialization (JSON → Rust)
 #[post("/demo/deserialize")]
 async fn demo_deserialize(req: web::Json<CreateStudentRequest>) -> impl Responder {
     let demo = SerdeDemo {
@@ -93,11 +92,9 @@ async fn demo_deserialize(req: web::Json<CreateStudentRequest>) -> impl Responde
             }
         }),
     };
-    
     HttpResponse::Ok().json(demo)
 }
 
-/// Show automatic validation - invalid JSON rejected
 #[post("/demo/validation")]
 async fn demo_validation(req: web::Json<CreateStudentRequest>) -> impl Responder {
     HttpResponse::Ok().json(serde_json::json!({
@@ -110,7 +107,6 @@ async fn demo_validation(req: web::Json<CreateStudentRequest>) -> impl Responder
     }))
 }
 
-/// Show different response formats
 #[get("/demo/formats/{format}")]
 async fn demo_formats(format: web::Path<String>) -> impl Responder {
     let student = Student {
@@ -122,7 +118,7 @@ async fn demo_formats(format: web::Path<String>) -> impl Responder {
         gpa: 3.5,
         performance_level: "good".to_string(),
     };
-    
+
     match format.as_str() {
         "compact" => {
             let json = serde_json::to_string(&student).unwrap();
@@ -136,7 +132,7 @@ async fn demo_formats(format: web::Path<String>) -> impl Responder {
         }
         _ => HttpResponse::BadRequest().json(serde_json::json!({
             "error": "Invalid format. Use 'compact' or 'pretty'"
-        }))
+        })),
     }
 }
 
@@ -151,7 +147,6 @@ async fn main() -> std::io::Result<()> {
     let port = env::var("SERVER_PORT").unwrap_or_else(|_| "8080".to_string());
     let bind_address = format!("{}:{}", host, port);
 
-    // Create database connection pool
     let pool = match db::create_pool().await {
         Ok(pool) => {
             println!("✅ Database pool created");
@@ -163,7 +158,6 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    // Run migrations
     if let Err(e) = db::run_migrations(&pool).await {
         eprintln!("❌ Failed to run migrations: {:?}", e);
         std::process::exit(1);
@@ -171,7 +165,7 @@ async fn main() -> std::io::Result<()> {
 
     let startup_log = StartupLog {
         level: "INFO".to_string(),
-        message: "EduMetrics Backend with PostgreSQL".to_string(),
+        message: "EduMetrics Backend with PostgreSQL — Error Handling enabled".to_string(),
         environment: "development".to_string(),
         server_url: format!("http://{}:{}", host, port),
         database_status: "connected".to_string(),
@@ -182,21 +176,34 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            // Return JSON 400 when Actix itself cannot deserialise the request body
+            .app_data(
+                web::JsonConfig::default()
+                    .error_handler(|err, _req| {
+                        let body = errors::ErrorBody::new(
+                            "INVALID_JSON",
+                            format!("Could not parse request body: {}", err),
+                        );
+                        actix_web::error::InternalError::from_response(
+                            err,
+                            HttpResponse::BadRequest().json(body),
+                        )
+                        .into()
+                    }),
+            )
             .wrap(middleware::Logger::default())
             .service(health_check)
             .service(demo_serialize)
             .service(demo_deserialize)
             .service(demo_validation)
             .service(demo_formats)
-            // .route("/demo/deserialize", web::post().to(demo_deserialize))
-            // .route("/demo/validation", web::post().to(demo_validation))
             .service(
                 web::scope("/api")
-                    .route("/students", web::get().to(handlers::get_all_students))
-                    .route("/students", web::post().to(handlers::create_student))
+                    .route("/students",     web::get().to(handlers::get_all_students))
+                    .route("/students",     web::post().to(handlers::create_student))
                     .route("/students/{id}", web::get().to(handlers::get_student_by_id))
                     .route("/students/{id}", web::put().to(handlers::update_student))
-                    .route("/students/{id}", web::delete().to(handlers::delete_student))
+                    .route("/students/{id}", web::delete().to(handlers::delete_student)),
             )
     })
     .bind(&bind_address)?
