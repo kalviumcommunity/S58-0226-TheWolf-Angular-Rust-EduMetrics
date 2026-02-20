@@ -99,6 +99,7 @@ async fn main() -> std::io::Result<()> {
                     .route("/students", web::get().to(handlers::get_all_students))
                     .route("/students", web::post().to(handlers::create_student))
                     .route("/students/{id}", web::get().to(handlers::get_student_by_id))
+                    .route("/students/{id}", web::put().to(handlers::update_student))
                     .route("/students/{id}", web::delete().to(handlers::delete_student))
             )
     })

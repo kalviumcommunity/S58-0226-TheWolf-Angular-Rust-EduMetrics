@@ -136,3 +136,56 @@ pub async fn delete_student(
         }
     }
 }
+// ============================================================
+// UPDATE STUDENT
+// ============================================================
+pub async fn update_student(
+    pool: web::Data<PgPool>,
+    id: web::Path<i32>,
+    req: web::Json<UpdateStudentRequest>,
+) -> impl Responder {
+    // Check if at least one field is provided
+    if req.name.is_none() && req.email.is_none() && req.status.is_none() {
+        return HttpResponse::BadRequest().json(serde_json::json!({
+            "error": "No fields to update"
+        }));
+    }
+
+    // Prepare values with proper lifetimes
+    let empty_string = String::new();
+    let name = req.name.as_ref().unwrap_or(&empty_string);
+    let email = req.email.as_ref().unwrap_or(&empty_string);
+
+    let result = sqlx::query(
+        "UPDATE students 
+         SET name = COALESCE(NULLIF($1, ''), name), 
+             email = COALESCE(NULLIF($2, ''), email)
+         WHERE id = $3
+         RETURNING id"
+    )
+    .bind(name)
+    .bind(email)
+    .bind(*id)
+    .fetch_one(pool.get_ref())
+    .await;
+
+    match result {
+        Ok(_) => {
+            HttpResponse::Ok().json(serde_json::json!({
+                "message": "Student updated successfully",
+                "id": *id
+            }))
+        }
+        Err(sqlx::Error::RowNotFound) => {
+            HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Student not found"
+            }))
+        }
+        Err(e) => {
+            eprintln!("Database error: {:?}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to update student"
+            }))
+        }
+    }
+}
