@@ -1,134 +1,118 @@
-//src/models/student.rs
+// src/models/student.rs
+// ============================================================
+// STUDENT MODEL — Updated for Assignment 3.29
+// Reflects schema changes from:
+//   • Migration 002: phone, address, department columns on students
+//   • Migration 003: new Grade struct for the grades table
+// ============================================================
+
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use chrono::NaiveDate;
 
-// ============================================================
-// ENUMS - Prevent Invalid States
-// ============================================================
-
-/// Student enrollment status
+// ──────────────────────────────────────────────────────────
+// ENUMS
+// ──────────────────────────────────────────────────────────
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
-pub enum EnrollmentStatus {
-    Active,
-    Suspended,
-    Graduated,
-    Withdrawn,
-}
+pub enum EnrollmentStatus { Active, Suspended, Graduated, Withdrawn }
 
-/// Academic performance level
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
-pub enum PerformanceLevel {
-    Excellent,
-    Good,
-    Average,
-    NeedsImprovement,
-    AtRisk,
-}
+pub enum PerformanceLevel { Excellent, Good, Average, NeedsImprovement, AtRisk }
 
-/// Attendance status for a session
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
-pub enum AttendanceStatus {
-    Present,
-    Absent,
-    Late,
-    Excused,
-}
+pub enum AttendanceStatus { Present, Absent, Late, Excused }
 
-// ============================================================
-// STUDENT ENTITY - Main Domain Model (DATABASE VERSION)
-// ============================================================
-
-/// Complete student record from database
-/// Note: Enums are stored as strings in PostgreSQL
+// ──────────────────────────────────────────────────────────
+// STUDENT — includes columns added by Migration 002
+// ──────────────────────────────────────────────────────────
 #[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
 pub struct Student {
-    pub id: i32,
-    pub name: String,
-    pub email: String,
-    pub enrollment_date: NaiveDate,
-    pub status: String,
-    pub gpa: f32,
+    pub id:                i32,
+    pub name:              String,
+    pub email:             String,
+    pub enrollment_date:   NaiveDate,
+    pub status:            String,
+    pub gpa:               f32,
     pub performance_level: String,
+    // Migration 002 columns (Option so old rows still deserialise)
+    pub phone:      Option<String>,
+    pub address:    Option<String>,
+    pub department: Option<String>,
 }
 
-// Helper methods to convert between database strings and enums
-impl Student {
-    /// Convert status string to enum
-    pub fn get_status_enum(&self) -> EnrollmentStatus {
-        match self.status.as_str() {
-            "active" => EnrollmentStatus::Active,
-            "suspended" => EnrollmentStatus::Suspended,
-            "graduated" => EnrollmentStatus::Graduated,
-            "withdrawn" => EnrollmentStatus::Withdrawn,
-            _ => EnrollmentStatus::Active, // Default
-        }
-    }
-
-    /// Convert performance_level string to enum
-    pub fn get_performance_enum(&self) -> PerformanceLevel {
-        match self.performance_level.as_str() {
-            "excellent" => PerformanceLevel::Excellent,
-            "good" => PerformanceLevel::Good,
-            "average" => PerformanceLevel::Average,
-            "needsimprovement" => PerformanceLevel::NeedsImprovement,
-            "atrisk" => PerformanceLevel::AtRisk,
-            _ => PerformanceLevel::Average, // Default
-        }
-    }
+// ──────────────────────────────────────────────────────────
+// GRADE — new struct for the grades table (Migration 003)
+// ──────────────────────────────────────────────────────────
+#[derive(Debug, Serialize, Deserialize, Clone, FromRow)]
+pub struct Grade {
+    pub id:           i32,
+    pub student_id:   i32,
+    pub semester:     String,
+    pub semester_gpa: f32,
+    pub credits:      i32,
+    pub standing:     String,
 }
 
-// ============================================================
-// REQUEST MODELS - API Input
-// ============================================================
-
-/// Request to create a new student
+// ──────────────────────────────────────────────────────────
+// REQUEST MODELS
+// ──────────────────────────────────────────────────────────
 #[derive(Debug, Deserialize)]
 pub struct CreateStudentRequest {
-    pub name: String,
-    pub email: String,
+    pub name:            String,
+    pub email:           String,
     pub enrollment_date: NaiveDate,
+    // Optional contact fields from Migration 002
+    pub phone:      Option<String>,
+    pub address:    Option<String>,
+    pub department: Option<String>,
 }
 
-/// Request to update student information
 #[derive(Debug, Deserialize)]
 pub struct UpdateStudentRequest {
-    pub name: Option<String>,
-    pub email: Option<String>,
+    pub name:   Option<String>,
+    pub email:  Option<String>,
     pub status: Option<EnrollmentStatus>,
+    // Optional contact fields from Migration 002
+    pub phone:      Option<String>,
+    pub address:    Option<String>,
+    pub department: Option<String>,
 }
 
-// ============================================================
-// RESPONSE MODELS - API Output
-// ============================================================
+#[derive(Debug, Deserialize)]
+pub struct CreateGradeRequest {
+    pub semester:     String,
+    pub semester_gpa: f32,
+    pub credits:      i32,
+    pub standing:     Option<String>,
+}
 
-/// Successful student creation response
+// ──────────────────────────────────────────────────────────
+// RESPONSE MODELS
+// ──────────────────────────────────────────────────────────
 #[derive(Debug, Serialize)]
 pub struct StudentResponse {
-    pub id: i32,
-    pub name: String,
-    pub email: String,
-    pub status: EnrollmentStatus,
+    pub id:      i32,
+    pub name:    String,
+    pub email:   String,
+    pub status:  EnrollmentStatus,
     pub message: String,
 }
 
-/// Student list response
 #[derive(Debug, Serialize)]
 pub struct StudentListResponse {
     pub students: Vec<Student>,
-    pub total: usize,
+    pub total:    usize,
 }
 
-/// Student analytics summary
 #[derive(Debug, Serialize)]
 pub struct StudentAnalytics {
-    pub student_id: i32,
-    pub student_name: String,
-    pub average_score: f32,
-    pub attendance_rate: f32,
+    pub student_id:        i32,
+    pub student_name:      String,
+    pub average_score:     f32,
+    pub attendance_rate:   f32,
     pub performance_level: PerformanceLevel,
-    pub risk_indicators: Vec<String>,
+    pub risk_indicators:   Vec<String>,
 }
