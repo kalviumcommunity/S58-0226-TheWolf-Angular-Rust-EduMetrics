@@ -1,4 +1,3 @@
-
 [package]
 name = "backend"
 version = "0.1.0"
@@ -9,12 +8,14 @@ actix-web = "4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 dotenv = "0.15"
-
 chrono = { version = "0.4", features = ["serde"] }
 
-# Database dependencies
+# Database
 sqlx = { version = "0.7", features = ["postgres", "runtime-tokio-native-tls", "macros", "migrate", "chrono"] }
 tokio = { version = "1", features = ["full"] }
 
 # Error handling
 anyhow = "1.0"
+
+# Security — NEW in Assignment 3.32
+actix-cors = "0.7"          # CORS middleware for Actix-Web

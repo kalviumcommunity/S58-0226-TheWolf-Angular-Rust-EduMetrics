@@ -1,19 +1,33 @@
-// src/main.rs — Updated for Assignment 3.29
-// New routes registered:
-//   GET  /api/students/{id}/grades
-//   POST /api/students/{id}/grades
+// src/main.rs — Assignment 3.32
+// ============================================================
+// Fixes applied:
+//   1. E0255: `middleware` name clash — removed `middleware` from
+//      actix_web use, import Logger explicitly instead
+//   2. E0433: futures_util removed — handled in auth.rs
+//   3. E0277: ResponseError now implemented in errors.rs
+// ============================================================
 
-use actix_web::{get, post, middleware, web, App, HttpResponse, HttpServer, Responder};
+use actix_cors::Cors;
+use actix_web::{
+    get, post,
+    middleware::Logger,          // ← import Logger directly (fixes E0255 + Logger not found)
+    web, App, HttpResponse, HttpServer, Responder,
+};
 use chrono::NaiveDate;
 use serde::Serialize;
+use std::env;
 
 mod models;
 mod db;
 mod handlers;
 mod errors;
+mod middleware;                           // ← declare our module (no `as` here)
+
+use crate::middleware::ApiKeyAuth;       // ← import what we need directly
 
 use models::*;
 
+// ── Health check (PUBLIC) ────────────────────────────────────
 #[derive(Serialize)]
 struct HealthResponse {
     status: String, message: String,
@@ -87,9 +101,12 @@ async fn demo_formats(format: web::Path<String>) -> impl Responder {
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
 
-    let host = std::env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".into());
-    let port = std::env::var("SERVER_PORT").unwrap_or_else(|_| "8080".into());
+    let host         = env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".into());
+    let port         = env::var("SERVER_PORT").unwrap_or_else(|_| "8080".into());
     let bind_address = format!("{}:{}", host, port);
+
+    let allowed_origin = env::var("ALLOWED_ORIGIN")
+        .unwrap_or_else(|_| "http://localhost:4200".into());
 
     let pool = match db::create_pool().await {
         Ok(p)  => { println!("✅ Database pool created"); p }
@@ -103,13 +120,23 @@ async fn main() -> std::io::Result<()> {
 
     println!("{}", serde_json::to_string(&StartupLog {
         level: "INFO".into(),
-        message: "EduMetrics — Schema Migrations (Assignment 3.29)".into(),
+        message: "EduMetrics — Security Middleware enabled (Assignment 3.32)".into(),
         environment: "development".into(),
         server_url: format!("http://{}:{}", host, port),
         database_status: "connected".into(),
     }).unwrap());
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin(&allowed_origin)
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+            .allowed_headers(vec![
+                actix_web::http::header::AUTHORIZATION,
+                actix_web::http::header::CONTENT_TYPE,
+                actix_web::http::header::ACCEPT,
+            ])
+            .max_age(3600);
+
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(
@@ -123,20 +150,23 @@ async fn main() -> std::io::Result<()> {
                     ).into()
                 }),
             )
-            .wrap(middleware::Logger::default())
+            .wrap(cors)
+            .wrap(Logger::default())           // ← use imported Logger directly
+            // ── PUBLIC routes ──────────────────────────────────
             .service(health_check)
             .service(demo_serialize)
             .service(demo_deserialize)
             .service(demo_validation)
             .service(demo_formats)
+            // ── PROTECTED routes ───────────────────────────────
             .service(
                 web::scope("/api")
+                    .wrap(ApiKeyAuth)           // ← use imported ApiKeyAuth directly
                     .route("/students",      web::get().to(handlers::get_all_students))
                     .route("/students",      web::post().to(handlers::create_student))
                     .route("/students/{id}", web::get().to(handlers::get_student_by_id))
                     .route("/students/{id}", web::put().to(handlers::update_student))
                     .route("/students/{id}", web::delete().to(handlers::delete_student))
-                    // ── NEW in Assignment 3.29 (grades table from Migration 003) ──
                     .route("/students/{id}/grades", web::get().to(handlers::get_student_grades))
                     .route("/students/{id}/grades", web::post().to(handlers::add_student_grade)),
             )
