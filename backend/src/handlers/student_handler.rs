@@ -1,11 +1,7 @@
 // src/handlers/student_handler.rs
 // ============================================================
 // STUDENT HANDLERS — Updated for Assignment 3.29
-// Changes from new migrations:
-//   • create_student now accepts phone, address, department
-//   • update_student now accepts phone, address, department
-//   • get_student_grades — new endpoint using grades table
-//   • add_student_grade  — new endpoint using grades table
+// Fix: search_pattern moved outside if-block to fix lifetime issue
 // ============================================================
 
 use actix_web::{web, HttpResponse};
@@ -73,25 +69,137 @@ fn validate_grade_request(req: &CreateGradeRequest) -> Result<(), ApiError> {
 }
 
 // ============================================================
-// GET ALL STUDENTS — query includes new Migration 002 columns
+// GET ALL STUDENTS WITH PAGINATION & FILTERING
 // ============================================================
-pub async fn get_all_students(pool: web::Data<PgPool>) -> HandlerResult {
-    let students = sqlx::query_as::<_, Student>(
-        "SELECT id, name, email, enrollment_date,
-                status, gpa::float4, performance_level,
-                phone, address, department
+pub async fn get_all_students(
+    pool: web::Data<PgPool>,
+    query: web::Query<StudentQuery>,
+) -> HandlerResult {
+    
+    let limit = query.get_limit();
+    let offset = query.get_offset();
+    let sort_by = query.get_sort_by();
+    let order = query.get_order();
+    
+    // Build WHERE clause dynamically
+    let mut where_clauses = Vec::new();
+    let mut bind_count = 1;
+    
+    // Filter by status
+    let status_filter = query.status.is_some();
+    if status_filter {
+        let clause = format!("status = ${}", bind_count);
+        bind_count += 1;
+        where_clauses.push(clause);
+    }
+    
+    // Filter by department
+    let department_filter = query.department.is_some();
+    if department_filter {
+        let clause = format!("department = ${}", bind_count);
+        bind_count += 1;
+        where_clauses.push(clause);
+    }
+    
+    // Filter by minimum GPA
+    let gpa_filter = query.min_gpa.is_some();
+    if gpa_filter {
+        let clause = format!("gpa >= ${}", bind_count);
+        bind_count += 1;
+        where_clauses.push(clause);
+    }
+    
+    // Search in name or email - FIX FOR LIFETIME ISSUE
+    let search_pattern = if let Some(ref search_term) = query.search {
+        Some(format!("%{}%", search_term))
+    } else {
+        None
+    };
+    
+    let search_filter = search_pattern.is_some();
+    if search_filter {
+        let clause = format!("(name ILIKE ${} OR email ILIKE ${})", bind_count, bind_count);
+        bind_count += 1;
+        where_clauses.push(clause);
+    }
+    
+    let where_sql = if where_clauses.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", where_clauses.join(" AND "))
+    };
+    
+    // Count total matching records
+    let count_sql = format!("SELECT COUNT(*) FROM students {}", where_sql);
+    let mut count_query = sqlx::query_scalar::<_, i64>(&count_sql);
+    
+    // Bind parameters for count query
+    if status_filter {
+        count_query = count_query.bind(query.status.as_ref().unwrap());
+    }
+    if department_filter {
+        count_query = count_query.bind(query.department.as_ref().unwrap());
+    }
+    if gpa_filter {
+        count_query = count_query.bind(query.min_gpa.unwrap());
+    }
+    if search_filter {
+        count_query = count_query.bind(search_pattern.as_ref().unwrap());
+    }
+    
+    let total = count_query
+        .fetch_one(pool.get_ref())
+        .await
+        .context("Failed to count students")
+        .map_err(ApiError::from)?;
+    
+    // Fetch paginated data
+    let data_sql = format!(
+        "SELECT id, name, email, enrollment_date, status, gpa::float4, 
+                performance_level, phone, address, department
          FROM students
-         ORDER BY id",
-    )
-    .fetch_all(pool.get_ref())
-    .await
-    .context("Failed to fetch students")
-    .map_err(ApiError::from)?;
-
-    Ok(HttpResponse::Ok().json(StudentListResponse {
-        total: students.len(),
+         {}
+         ORDER BY {} {}
+         LIMIT ${} OFFSET ${}",
+        where_sql,
+        sort_by,
+        order,
+        bind_count,
+        bind_count + 1
+    );
+    
+    let mut data_query = sqlx::query_as::<_, Student>(&data_sql);
+    
+    // Bind parameters for data query
+    if status_filter {
+        data_query = data_query.bind(query.status.as_ref().unwrap());
+    }
+    if department_filter {
+        data_query = data_query.bind(query.department.as_ref().unwrap());
+    }
+    if gpa_filter {
+        data_query = data_query.bind(query.min_gpa.unwrap());
+    }
+    if search_filter {
+        data_query = data_query.bind(search_pattern.as_ref().unwrap());
+    }
+    
+    data_query = data_query.bind(limit).bind(offset);
+    
+    let students = data_query
+        .fetch_all(pool.get_ref())
+        .await
+        .context("Failed to fetch students")
+        .map_err(ApiError::from)?;
+    
+    let response = PaginatedResponse::new(
+        query.get_page(),
+        limit,
+        total,
         students,
-    }))
+    );
+    
+    Ok(HttpResponse::Ok().json(response))
 }
 
 // ============================================================
@@ -121,7 +229,7 @@ pub async fn get_student_by_id(
 }
 
 // ============================================================
-// CREATE STUDENT — now stores phone, address, department
+// CREATE STUDENT — stores phone, address, department
 // ============================================================
 pub async fn create_student(
     pool: web::Data<PgPool>,
@@ -161,7 +269,7 @@ pub async fn create_student(
 }
 
 // ============================================================
-// UPDATE STUDENT — now accepts phone, address, department
+// UPDATE STUDENT — accepts phone, address, department
 // ============================================================
 pub async fn update_student(
     pool: web::Data<PgPool>,
@@ -171,7 +279,7 @@ pub async fn update_student(
     let sid = *id;
     validate_update_request(&req)?;
 
-    let empty = String::new();
+    let empty      = String::new();
     let name       = req.name.as_ref().unwrap_or(&empty);
     let email      = req.email.as_ref().unwrap_or(&empty);
     let phone      = req.phone.as_ref().unwrap_or(&empty);
@@ -236,7 +344,7 @@ pub async fn delete_student(
 }
 
 // ============================================================
-// GET GRADES FOR A STUDENT  (grades table — Migration 003)
+// GET GRADES FOR A STUDENT
 // ============================================================
 pub async fn get_student_grades(
     pool: web::Data<PgPool>,
@@ -276,8 +384,7 @@ pub async fn get_student_grades(
 }
 
 // ============================================================
-// ADD / UPDATE GRADE FOR A STUDENT  (Migration 003)
-// Uses ON CONFLICT so re-submitting the same semester updates it
+// ADD / UPDATE GRADE FOR A STUDENT
 // ============================================================
 pub async fn add_student_grade(
     pool: web::Data<PgPool>,

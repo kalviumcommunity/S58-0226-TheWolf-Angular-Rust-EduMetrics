@@ -37,7 +37,7 @@ impl ErrorBody {
 
 /// All possible errors that a handler can return to the frontend.
 /// Each variant maps to a specific HTTP status code and error code string.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ApiError {
     /// 404 – row not found in the database
     NotFound(String),
@@ -136,5 +136,25 @@ impl From<sqlx::Error> for ApiError {
 impl From<anyhow::Error> for ApiError {
     fn from(e: anyhow::Error) -> Self {
         ApiError::InternalError(e.to_string())
+    }
+}
+
+// ============================================================
+// IMPLEMENT ACTIX ResponseError TRAIT
+// ============================================================
+
+impl actix_web::error::ResponseError for ApiError {
+    fn error_response(&self) -> HttpResponse {
+        self.clone().into_response()
+    }
+
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        use actix_web::http::StatusCode;
+        match self {
+            ApiError::NotFound(_) => StatusCode::NOT_FOUND,
+            ApiError::InvalidInput(_) => StatusCode::BAD_REQUEST,
+            ApiError::Conflict(_) => StatusCode::CONFLICT,
+            ApiError::InternalError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     }
 }

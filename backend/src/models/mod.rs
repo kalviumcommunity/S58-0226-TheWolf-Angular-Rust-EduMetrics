@@ -7,17 +7,20 @@ pub mod student;
 pub mod score;
 pub mod attendance;
 pub mod response;
+pub mod query_params;
+pub use query_params::{StudentQuery, PaginatedResponse};
 
 // Re-export commonly used types
 pub use student::{
     Student, CreateStudentRequest, UpdateStudentRequest, 
     StudentResponse, StudentListResponse, StudentAnalytics,
     EnrollmentStatus, PerformanceLevel, AttendanceStatus,
+    Grade, CreateGradeRequest,
 };
 
 pub use score::{
     Score, CreateScoreRequest, ScoreAnalytics,
-    Subject, Grade,
+    Subject
 };
 
 pub use attendance::{
