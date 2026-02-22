@@ -1,0 +1,97 @@
+<div class="student-list-container">
+  <h1>Student Management Dashboard</h1>
+
+  <!-- Filters Section -->
+  <div class="filters-panel">
+    <h3>Filters</h3>
+    
+    <div class="filter-row">
+      <!-- Two-way data binding with [(ngModel)] -->
+      <input 
+        [(ngModel)]="filters.search" 
+        (keyup.enter)="applyFilters()"
+        placeholder="Search by name or email..."
+        class="filter-input">
+      
+      <select [(ngModel)]="filters.status" class="filter-select">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="suspended">Suspended</option>
+        <option value="graduated">Graduated</option>
+      </select>
+      
+      <select [(ngModel)]="filters.department" class="filter-select">
+        <option value="">All Departments</option>
+        <option value="Computer Science">Computer Science</option>
+        <option value="Mathematics">Mathematics</option>
+        <option value="Physics">Physics</option>
+        <option value="Engineering">Engineering</option>
+      </select>
+      
+      <input 
+        [(ngModel)]="filters.min_gpa" 
+        type="number" 
+        step="0.1" 
+        min="0" 
+        max="4"
+        placeholder="Min GPA"
+        class="filter-input small">
+      
+      <button (click)="applyFilters()" class="btn btn-primary">
+        Apply Filters
+      </button>
+      
+      <button (click)="clearFilters()" class="btn btn-secondary">
+        Clear
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-spinner">
+    <p>Loading students...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+  </div>
+
+  <!-- Students Grid -->
+  <div *ngIf="!loading && !error" class="students-grid">
+    <!-- Pass data with @Input, listen to events with @Output -->
+    <app-student-card 
+      *ngFor="let student of students"
+      [student]="student"
+      (viewDetails)="handleViewDetails($event)"
+      (editStudent)="handleEditStudent($event)"
+      (deleteStudent)="handleDeleteStudent($event)">
+    </app-student-card>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && students.length === 0" class="empty-state">
+    <p>No students found</p>
+  </div>
+
+  <!-- Pagination -->
+  <div *ngIf="totalPages > 1" class="pagination">
+    <button 
+      (click)="previousPage()" 
+      [disabled]="currentPage === 1"
+      class="btn btn-pagination">
+      ← Previous
+    </button>
+    
+    <span class="page-info">
+      Page {{ currentPage }} of {{ totalPages }} ({{ totalStudents }} students)
+    </span>
+    
+    <button 
+      (click)="nextPage()" 
+      [disabled]="currentPage === totalPages"
+      class="btn btn-pagination">
+      Next →
+    </button>
+  </div>
+</div>

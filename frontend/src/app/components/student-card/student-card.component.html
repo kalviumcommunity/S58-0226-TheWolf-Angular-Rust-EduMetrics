@@ -1,0 +1,52 @@
+<div class="student-card">
+  <div class="card-header">
+    <!-- Property Binding for dynamic class -->
+    <span class="status-badge" [ngClass]="getStatusClass()">
+      {{ student.status }}
+    </span>
+    <h3>{{ student.name }}</h3>
+  </div>
+
+  <div class="card-body">
+    <div class="info-row">
+      <span class="label">Email:</span>
+      <span class="value">{{ student.email }}</span>
+    </div>
+
+    <div class="info-row">
+      <span class="label">Department:</span>
+      <span class="value">{{ student.department || 'N/A' }}</span>
+    </div>
+
+    <div class="info-row">
+      <span class="label">GPA:</span>
+      <!-- Dynamic class based on GPA -->
+      <span class="value gpa-badge" [ngClass]="getGpaClass()">
+        {{ student.gpa.toFixed(2) }}
+      </span>
+    </div>
+
+    <div class="info-row">
+      <span class="label">Performance:</span>
+      <span class="value">{{ student.performance_level }}</span>
+    </div>
+
+    <div class="info-row">
+      <span class="label">Enrolled:</span>
+      <span class="value">{{ student.enrollment_date }}</span>
+    </div>
+  </div>
+
+  <div class="card-footer">
+    <!-- Event Binding for button clicks -->
+    <button (click)="onViewDetails()" class="btn btn-primary">
+      View Details
+    </button>
+    <button (click)="onEdit()" class="btn btn-secondary">
+      Edit
+    </button>
+    <button (click)="onDelete()" class="btn btn-danger">
+      Delete
+    </button>
+  </div>
+</div>

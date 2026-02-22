@@ -1,0 +1,22 @@
+<div class="app-container">
+  <header>
+    <h1>{{ title }}</h1>
+    <nav>
+      <button 
+        (click)="toggleView('students')" 
+        [class.active]="showStudents">
+        Students Dashboard
+      </button>
+      <button 
+        (click)="toggleView('counter')" 
+        [class.active]="showCounter">
+        Counter Demo
+      </button>
+    </nav>
+  </header>
+
+  <main>
+    <app-counter-demo *ngIf="showCounter"></app-counter-demo>
+    <app-student-list *ngIf="showStudents"></app-student-list>
+  </main>
+</div>

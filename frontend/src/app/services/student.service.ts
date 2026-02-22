@@ -1,123 +1,75 @@
-// frontend/src/app/services/student.service.ts
-// ============================================================
-// STUDENT SERVICE — Assignment 3.27
-// Parses the structured { success, error_code, message } error
-// bodies returned by the Rust backend and surfaces them cleanly
-// to Angular components.
-// ============================================================
-
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
-import {
-  Student,
-  CreateStudentRequest,
-  UpdateStudentRequest,
-  StudentListResponse,
-  StudentResponse,
-  ApiError,
-} from '../models/student.model';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, BehaviorSubject } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { Student, PaginatedStudents } from '../models/student.interface';
+import { environment } from '../../environments/environment';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class StudentService {
-  private readonly apiUrl = 'http://localhost:8080/api/students';
+  private apiUrl = `${environment.apiBaseUrl}/api/students`;
+  
+  // Reactive state management
+  private studentsSubject = new BehaviorSubject<Student[]>([]);
+  public students$ = this.studentsSubject.asObservable();
+  
+  private totalStudentsSubject = new BehaviorSubject<number>(0);
+  public totalStudents$ = this.totalStudentsSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
-  // ──────────────────────────────────────────────────────────
-  // GET ALL STUDENTS
-  // ──────────────────────────────────────────────────────────
-  getAllStudents(): Observable<StudentListResponse> {
-    return this.http.get<StudentListResponse>(this.apiUrl).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // ──────────────────────────────────────────────────────────
-  // GET STUDENT BY ID
-  // ──────────────────────────────────────────────────────────
-  getStudentById(id: number): Observable<Student> {
-    return this.http.get<Student>(`${this.apiUrl}/${id}`).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // ──────────────────────────────────────────────────────────
-  // CREATE STUDENT
-  // ──────────────────────────────────────────────────────────
-  createStudent(data: CreateStudentRequest): Observable<StudentResponse> {
-    return this.http.post<StudentResponse>(this.apiUrl, data).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // ──────────────────────────────────────────────────────────
-  // UPDATE STUDENT
-  // ──────────────────────────────────────────────────────────
-  updateStudent(id: number, data: UpdateStudentRequest): Observable<{ success: boolean; message: string; id: number }> {
-    return this.http
-      .put<{ success: boolean; message: string; id: number }>(
-        `${this.apiUrl}/${id}`,
-        data
-      )
-      .pipe(catchError(this.handleError));
-  }
-
-  // ──────────────────────────────────────────────────────────
-  // DELETE STUDENT
-  // ──────────────────────────────────────────────────────────
-  deleteStudent(id: number): Observable<{ success: boolean; message: string }> {
-    return this.http
-      .delete<{ success: boolean; message: string }>(`${this.apiUrl}/${id}`)
-      .pipe(catchError(this.handleError));
-  }
-
-  // ──────────────────────────────────────────────────────────
-  // CENTRAL ERROR HANDLER
-  // ──────────────────────────────────────────────────────────
-  // The Rust backend always returns a structured JSON body:
-  //   { success: false, error_code: "NOT_FOUND", message: "..." }
-  //
-  // We extract that and throw an ApiError so components can
-  // display meaningful messages without brittle status-code checks.
-  // ──────────────────────────────────────────────────────────
-  private handleError(response: HttpErrorResponse): Observable<never> {
-    let apiError: ApiError;
-
-    if (response.error && typeof response.error === 'object' && 'error_code' in response.error) {
-      // Structured error from our Rust backend
-      apiError = {
-        statusCode: response.status,
-        errorCode: response.error.error_code,
-        message: response.error.message,
-      };
-    } else if (response.status === 0) {
-      // Network failure — backend is unreachable
-      apiError = {
-        statusCode: 0,
-        errorCode: 'NETWORK_ERROR',
-        message: 'Cannot reach the server. Please check your connection.',
-      };
-    } else if (response.status === 422) {
-      // Actix-level body parse failure (malformed JSON)
-      apiError = {
-        statusCode: 422,
-        errorCode: 'UNPROCESSABLE_ENTITY',
-        message: 'The request body could not be parsed.',
-      };
-    } else {
-      // Fallback for unexpected responses
-      apiError = {
-        statusCode: response.status,
-        errorCode: 'UNKNOWN_ERROR',
-        message: response.message || 'An unexpected error occurred.',
-      };
+  /**
+   * Get all students with pagination and filtering
+   */
+  getStudents(page: number = 1, limit: number = 10, filters?: any): Observable<PaginatedStudents> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('limit', limit.toString());
+    
+    if (filters) {
+      if (filters.status) params = params.set('status', filters.status);
+      if (filters.department) params = params.set('department', filters.department);
+      if (filters.min_gpa) params = params.set('min_gpa', filters.min_gpa.toString());
+      if (filters.search) params = params.set('search', filters.search);
+      if (filters.sort_by) params = params.set('sort_by', filters.sort_by);
+      if (filters.order) params = params.set('order', filters.order);
     }
 
-    console.error('[StudentService] API error:', apiError);
-    return throwError(() => apiError);
+    return this.http.get<PaginatedStudents>(this.apiUrl, { params }).pipe(
+      tap(response => {
+        this.studentsSubject.next(response.data);
+        this.totalStudentsSubject.next(response.total);
+      })
+    );
+  }
+
+  /**
+   * Get single student by ID
+   */
+  getStudentById(id: number): Observable<Student> {
+    return this.http.get<Student>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Create new student
+   */
+  createStudent(student: Partial<Student>): Observable<any> {
+    return this.http.post(this.apiUrl, student);
+  }
+
+  /**
+   * Update student
+   */
+  updateStudent(id: number, updates: Partial<Student>): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, updates);
+  }
+
+  /**
+   * Delete student
+   */
+  deleteStudent(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}`);
   }
 }

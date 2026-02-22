@@ -55,8 +55,8 @@ export class StudentsComponent implements OnInit {
     this.loading = true;
     this.clearMessages();
 
-    this.studentService.getAllStudents().subscribe({
-      next: (res) => {
+    this.studentService.getStudents().subscribe({
+      next: (res: any) => {
         this.students = res.students;
         this.loading = false;
       },
@@ -81,7 +81,7 @@ export class StudentsComponent implements OnInit {
     this.clearMessages();
 
     this.studentService.createStudent(payload).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.successMessage = res.message;
         this.createForm.reset();
         this.loading = false;
@@ -103,7 +103,7 @@ export class StudentsComponent implements OnInit {
     this.clearMessages();
 
     this.studentService.deleteStudent(id).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.successMessage = res.message;
         this.students = this.students.filter((s) => s.id !== id);
       },
