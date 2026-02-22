@@ -1,0 +1,46 @@
+<div class="user-card">
+  <!-- User Header -->
+  <div class="user-header">
+    <img [src]="imageUrl" [alt]="name" class="user-avatar">
+    <div class="user-info">
+      <h2>{{ name }}</h2>
+      <!-- Dynamic class binding -->
+      <span [ngClass]="getRoleBadgeClass()">{{ role }}</span>
+      <p class="experience">{{ experience }} years experience</p>
+    </div>
+  </div>
+
+  <!-- Skills Section -->
+  <div class="skills-section">
+    <h3>Skills</h3>
+    <div class="skills-list">
+      <!-- *ngFor loops through array -->
+      <span class="skill-badge" *ngFor="let skill of skills">
+        {{ skill }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="actions">
+    <button (click)="promote()" class="btn btn-promote">
+      🚀 Promote
+    </button>
+    <button (click)="addSkill()" class="btn btn-skill">
+      + Add Skill
+    </button>
+  </div>
+
+  <!-- Promotion Success Message -->
+  <div class="promotion-alert" *ngIf="isPromoted">
+    🎉 Congratulations on your promotion!
+  </div>
+
+  <!-- Activity History -->
+  <div class="history-section" *ngIf="promotionHistory.length > 0">
+    <h4>Recent Activity</h4>
+    <ul>
+      <li *ngFor="let event of promotionHistory">{{ event }}</li>
+    </ul>
+  </div>
+</div>

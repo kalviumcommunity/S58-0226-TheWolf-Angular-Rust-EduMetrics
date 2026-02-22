@@ -1,22 +1,47 @@
 <div class="app-container">
   <header>
     <h1>{{ title }}</h1>
+    <p class="subtitle">Assignment 3.13 - Component Architecture</p>
+    
     <nav>
       <button 
-        (click)="toggleView('students')" 
-        [class.active]="showStudents">
-        Students Dashboard
-      </button>
-      <button 
-        (click)="toggleView('counter')" 
-        [class.active]="showCounter">
-        Counter Demo
+        *ngFor="let view of views"
+        (click)="switchView(view.id)"
+        [class.active]="currentView === view.id">
+        {{ view.name }}
       </button>
     </nav>
   </header>
 
   <main>
-    <app-counter-demo *ngIf="showCounter"></app-counter-demo>
-    <app-student-list *ngIf="showStudents"></app-student-list>
+    <!-- Conditional rendering based on currentView -->
+    <app-student-list *ngIf="currentView === 'students'"></app-student-list>
+    <app-counter-demo *ngIf="currentView === 'counter'"></app-counter-demo>
+    <app-product-tile *ngIf="currentView === 'product'"></app-product-tile>
+    <app-user-card *ngIf="currentView === 'user'"></app-user-card>
   </main>
+
+  <footer>
+    <div class="learning-points">
+      <h3>Key Concepts Demonstrated:</h3>
+      <div class="concepts-grid">
+        <div class="concept">
+          <h4>Component Structure</h4>
+          <p>TypeScript (.ts) + HTML + CSS working together</p>
+        </div>
+        <div class="concept">
+          <h4>Data Binding</h4>
+          <p>Interpolation, property binding, event binding, two-way binding</p>
+        </div>
+        <div class="concept">
+          <h4>Reactive Updates</h4>
+          <p>UI automatically updates when component state changes</p>
+        </div>
+        <div class="concept">
+          <h4>Directives</h4>
+          <p>*ngIf, *ngFor, [ngClass] for dynamic rendering</p>
+        </div>
+      </div>
+    </div>
+  </footer>
 </div>
