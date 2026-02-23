@@ -4,6 +4,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';  // 
 
 import { routes } from './app.routes';
 import { authInterceptorFn } from './interceptors/auth.interceptor';          // ← NEW
+import { apiInterceptor } from './interceptors/api.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -12,6 +13,8 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptorFn])),                  // ← NEW
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient()
+    provideHttpClient(
+      withInterceptors([apiInterceptor])
+    )
   ]
 };

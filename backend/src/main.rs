@@ -7,6 +7,7 @@
 //   3. E0277: ResponseError now implemented in errors.rs
 // ============================================================
 
+
 use actix_cors::Cors;
 use actix_web::{
     get, post,
@@ -126,51 +127,50 @@ async fn main() -> std::io::Result<()> {
         database_status: "connected".into(),
     }).unwrap());
 
-    HttpServer::new(move || {
-        let cors = Cors::default()
-            .allowed_origin(&allowed_origin)
-            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-            .allowed_headers(vec![
-                actix_web::http::header::AUTHORIZATION,
-                actix_web::http::header::CONTENT_TYPE,
-                actix_web::http::header::ACCEPT,
-            ])
-            .max_age(3600);
-
-        App::new()
-            .app_data(web::Data::new(pool.clone()))
-            .app_data(
-                web::JsonConfig::default().error_handler(|err, _req| {
-                    let body = errors::ErrorBody::new(
-                        "INVALID_JSON",
-                        format!("Could not parse request body: {}", err),
-                    );
-                    actix_web::error::InternalError::from_response(
-                        err, HttpResponse::BadRequest().json(body),
-                    ).into()
-                }),
-            )
-            .wrap(cors)
-            .wrap(Logger::default())           // ← use imported Logger directly
-            // ── PUBLIC routes ──────────────────────────────────
-            .service(health_check)
-            .service(demo_serialize)
-            .service(demo_deserialize)
-            .service(demo_validation)
-            .service(demo_formats)
-            // ── PROTECTED routes ───────────────────────────────
-            .service(
-                web::scope("/api")
-                    .wrap(ApiKeyAuth)           // ← use imported ApiKeyAuth directly
-                    .route("/students",      web::get().to(handlers::get_all_students))
-                    .route("/students",      web::post().to(handlers::create_student))
-                    .route("/students/{id}", web::get().to(handlers::get_student_by_id))
-                    .route("/students/{id}", web::put().to(handlers::update_student))
-                    .route("/students/{id}", web::delete().to(handlers::delete_student))
-                    .route("/students/{id}/grades", web::get().to(handlers::get_student_grades))
-                    .route("/students/{id}/grades", web::post().to(handlers::add_student_grade)),
-            )
-    })
+HttpServer::new(move || {
+    App::new()
+        .app_data(web::Data::new(pool.clone()))
+        .app_data(
+            web::JsonConfig::default().error_handler(|err, _req| {
+                let body = errors::ErrorBody::new(
+                    "INVALID_JSON",
+                    format!("Could not parse request body: {}", err),
+                );
+                actix_web::error::InternalError::from_response(
+                    err, HttpResponse::BadRequest().json(body),
+                ).into()
+            }),
+        )
+        // ── CORS CONFIGURATION ──
+        .wrap(
+            Cors::default()
+                .allowed_origin("http://localhost:4200")
+                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+                .allowed_headers(vec![
+                    actix_web::http::header::AUTHORIZATION,
+                    actix_web::http::header::ACCEPT,
+                    actix_web::http::header::CONTENT_TYPE,
+                ])
+                .supports_credentials()
+                .max_age(3600)
+        )
+        .wrap(middleware::Logger::default())
+        .service(health_check)
+        .service(demo_serialize)
+        .service(demo_formats)
+        .route("/demo/deserialize", web::post().to(demo_deserialize))
+        .route("/demo/validation", web::post().to(demo_validation))
+        .service(
+            web::scope("/api")
+                .route("/students", web::get().to(handlers::get_all_students))
+                .route("/students", web::post().to(handlers::create_student))
+                .route("/students/{id}", web::get().to(handlers::get_student_by_id))
+                .route("/students/{id}", web::put().to(handlers::update_student))
+                .route("/students/{id}", web::delete().to(handlers::delete_student))
+                .route("/students/{id}/grades", web::get().to(handlers::get_student_grades))
+                .route("/students/{id}/grades", web::post().to(handlers::add_student_grade)),
+        )
+})
     .bind(&bind_address)?
     .run()
     .await
