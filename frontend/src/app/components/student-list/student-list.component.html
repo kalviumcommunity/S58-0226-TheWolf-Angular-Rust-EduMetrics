@@ -1,26 +1,39 @@
 <div class="student-list-container">
   <h1>Student Management Dashboard</h1>
 
+  <!-- Error Alert -->
+  <app-error-alert 
+    *ngIf="error"
+    [errorMessage]="error"
+    [errorCode]="errorCode"
+    (dismiss)="dismissError()">
+  </app-error-alert>
+
+  <!-- Success Toast -->
+  <div class="success-toast" *ngIf="successMessage">
+    ✓ {{ successMessage }}
+  </div>
+
   <!-- Filters Section -->
   <div class="filters-panel">
     <h3>Filters</h3>
     
     <div class="filter-row">
-      <!-- Two-way data binding with [(ngModel)] -->
       <input 
         [(ngModel)]="filters.search" 
         (keyup.enter)="applyFilters()"
+        [disabled]="loading"
         placeholder="Search by name or email..."
         class="filter-input">
       
-      <select [(ngModel)]="filters.status" class="filter-select">
+      <select [(ngModel)]="filters.status" [disabled]="loading" class="filter-select">
         <option value="">All Status</option>
         <option value="active">Active</option>
         <option value="suspended">Suspended</option>
         <option value="graduated">Graduated</option>
       </select>
       
-      <select [(ngModel)]="filters.department" class="filter-select">
+      <select [(ngModel)]="filters.department" [disabled]="loading" class="filter-select">
         <option value="">All Departments</option>
         <option value="Computer Science">Computer Science</option>
         <option value="Mathematics">Mathematics</option>
@@ -34,32 +47,46 @@
         step="0.1" 
         min="0" 
         max="4"
+        [disabled]="loading"
         placeholder="Min GPA"
         class="filter-input small">
       
-      <button (click)="applyFilters()" class="btn btn-primary">
-        Apply Filters
+      <button (click)="applyFilters()" [disabled]="loading" class="btn btn-primary">
+        {{ loading ? 'Loading...' : 'Apply Filters' }}
       </button>
       
-      <button (click)="clearFilters()" class="btn btn-secondary">
+      <button (click)="clearFilters()" [disabled]="loading" class="btn btn-secondary">
         Clear
       </button>
     </div>
   </div>
 
   <!-- Loading State -->
-  <div *ngIf="loading" class="loading-spinner">
-    <p>Loading students...</p>
+  <app-loading-spinner 
+    *ngIf="loading"
+    message="Loading students..."
+    size="large">
+  </app-loading-spinner>
+
+  <!-- Error State with Retry -->
+  <div *ngIf="!loading && error" class="error-state">
+    <p>Unable to load students</p>
+    <button (click)="retryLoad()" class="btn btn-primary">
+      🔄 Retry
+    </button>
   </div>
 
-  <!-- Error State -->
-  <div *ngIf="error" class="error-message">
-    {{ error }}
-  </div>
-
-  <!-- Students Grid -->
+  <!-- Students Grid (Only show when not loading and no error) -->
   <div *ngIf="!loading && !error" class="students-grid">
-    <!-- Pass data with @Input, listen to events with @Output -->
+    <!-- Empty State -->
+    <div *ngIf="students.length === 0" class="empty-state">
+      <p>📭 No students found</p>
+      <button (click)="clearFilters()" class="btn btn-secondary">
+        Clear Filters
+      </button>
+    </div>
+
+    <!-- Student Cards -->
     <app-student-card 
       *ngFor="let student of students"
       [student]="student"
@@ -69,16 +96,11 @@
     </app-student-card>
   </div>
 
-  <!-- Empty State -->
-  <div *ngIf="!loading && students.length === 0" class="empty-state">
-    <p>No students found</p>
-  </div>
-
-  <!-- Pagination -->
-  <div *ngIf="totalPages > 1" class="pagination">
+  <!-- Pagination (Only show when we have data) -->
+  <div *ngIf="!loading && !error && totalPages > 1" class="pagination">
     <button 
       (click)="previousPage()" 
-      [disabled]="currentPage === 1"
+      [disabled]="currentPage === 1 || loading"
       class="btn btn-pagination">
       ← Previous
     </button>
@@ -89,7 +111,7 @@
     
     <button 
       (click)="nextPage()" 
-      [disabled]="currentPage === totalPages"
+      [disabled]="currentPage === totalPages || loading"
       class="btn btn-pagination">
       Next →
     </button>

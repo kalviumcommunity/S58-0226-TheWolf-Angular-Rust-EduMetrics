@@ -4,18 +4,30 @@ import { FormsModule } from '@angular/forms';
 import { StudentService } from '../../services/student.service';
 import { Student } from '../../models/student.interface';
 import { StudentCardComponent } from '../student-card/student-card.component';
+import { LoadingSpinnerComponent } from '../loading-spinner/loading-spinner.component';
+import { ErrorAlertComponent } from '../error-alert/error-alert.component';
 
 @Component({
   selector: 'app-student-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, StudentCardComponent],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    StudentCardComponent,
+    LoadingSpinnerComponent,
+    ErrorAlertComponent
+  ],
   templateUrl: './student-list.component.html',
   styleUrls: ['./student-list.component.css']
 })
 export class StudentListComponent implements OnInit {
   students: Student[] = [];
+  
+  // UI State Management
   loading = false;
   error: string | null = null;
+  errorCode: string = '';
+  successMessage: string | null = null;
   
   // Pagination
   currentPage = 1;
@@ -40,21 +52,39 @@ export class StudentListComponent implements OnInit {
   }
 
   loadStudents() {
+    // Set loading state BEFORE API call
     this.loading = true;
     this.error = null;
+    this.errorCode = '';
     
     this.studentService.getStudents(this.currentPage, this.pageSize, this.filters)
       .subscribe({
         next: (response) => {
+          // SUCCESS: Update data and clear loading
           this.students = response.data;
           this.totalStudents = response.total;
           this.totalPages = response.total_pages;
           this.loading = false;
+          
+          console.log('✅ Students loaded successfully');
         },
         error: (err) => {
-          this.error = 'Failed to load students. Please try again.';
+          // ERROR: Show error message and clear loading
           this.loading = false;
-          console.error('Error loading students:', err);
+          this.error = err.message || 'Failed to load students';
+          
+          // Extract error code if available
+          if (err.message.includes('404')) {
+            this.errorCode = 'NOT_FOUND';
+          } else if (err.message.includes('500')) {
+            this.errorCode = 'SERVER_ERROR';
+          } else if (err.message.includes('Network')) {
+            this.errorCode = 'NETWORK_ERROR';
+          } else {
+            this.errorCode = 'UNKNOWN_ERROR';
+          }
+          
+          console.error('❌ Error loading students:', err);
         }
       });
   }
@@ -62,23 +92,30 @@ export class StudentListComponent implements OnInit {
   // Event handlers from child components
   handleViewDetails(studentId: number) {
     console.log('View details for student:', studentId);
-    alert(`View details for student ID: ${studentId}`);
+    // Could navigate to detail page or show modal
+    this.showSuccess(`Viewing details for student ID: ${studentId}`);
   }
 
   handleEditStudent(studentId: number) {
     console.log('Edit student:', studentId);
-    alert(`Edit student ID: ${studentId}`);
+    // Could navigate to edit page or show modal
+    this.showSuccess('Edit feature coming soon!');
   }
 
   handleDeleteStudent(studentId: number) {
+    // Set loading state for delete operation
+    this.loading = true;
+    this.error = null;
+    
     this.studentService.deleteStudent(studentId).subscribe({
       next: () => {
-        alert('Student deleted successfully');
-        this.loadStudents();
+        this.showSuccess('Student deleted successfully');
+        this.loadStudents(); // Reload list
       },
       error: (err) => {
-        alert('Failed to delete student');
-        console.error(err);
+        this.loading = false;
+        this.error = 'Failed to delete student: ' + err.message;
+        this.errorCode = 'DELETE_ERROR';
       }
     });
   }
@@ -119,6 +156,23 @@ export class StudentListComponent implements OnInit {
       order: 'asc'
     };
     this.currentPage = 1;
+    this.loadStudents();
+  }
+
+  // Utility methods
+  dismissError() {
+    this.error = null;
+    this.errorCode = '';
+  }
+
+  showSuccess(message: string) {
+    this.successMessage = message;
+    setTimeout(() => {
+      this.successMessage = null;
+    }, 3000);
+  }
+
+  retryLoad() {
     this.loadStudents();
   }
 }

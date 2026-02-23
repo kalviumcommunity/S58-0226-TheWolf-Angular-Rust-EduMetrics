@@ -3,6 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StudentService } from '../../services/student.service';
 import { Student } from '../../models/student.interface';
+import { LoadingSpinnerComponent } from '../loading-spinner/loading-spinner.component';
+import { ErrorAlertComponent } from '../error-alert/error-alert.component';
+
+// In imports array:
+imports: [
+  CommonModule, 
+  FormsModule,
+  LoadingSpinnerComponent,
+  ErrorAlertComponent
+]
 
 @Component({
   selector: 'app-api-demo',

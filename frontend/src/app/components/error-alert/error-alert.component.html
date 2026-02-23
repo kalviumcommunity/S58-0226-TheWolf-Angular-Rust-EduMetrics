@@ -1,0 +1,11 @@
+<div class="error-alert" *ngIf="errorMessage">
+  <div class="error-icon">{{ getErrorIcon() }}</div>
+  <div class="error-content">
+    <h4 class="error-title">{{ getErrorTitle() }}</h4>
+    <p class="error-message">{{ errorMessage }}</p>
+    <p class="error-code" *ngIf="errorCode">Error Code: {{ errorCode }}</p>
+  </div>
+  <button *ngIf="dismissible" (click)="onDismiss()" class="error-dismiss">
+    ✕
+  </button>
+</div>
