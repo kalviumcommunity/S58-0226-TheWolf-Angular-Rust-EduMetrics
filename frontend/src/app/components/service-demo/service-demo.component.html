@@ -1,0 +1,146 @@
+<div class="service-demo-container">
+  <h1>🔧 Reusable API Service Architecture Demo</h1>
+  <p class="subtitle">Assignment 3.35 - Centralized Service Classes</p>
+
+  <!-- Analytics Dashboard -->
+  <div class="analytics-section" *ngIf="analytics">
+    <h2>📊 Dashboard Analytics</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>{{ analytics.totalStudents }}</h3>
+        <p>Total Students</p>
+      </div>
+      <div class="stat-card">
+        <h3>{{ analytics.activeStudents }}</h3>
+        <p>Active Students</p>
+      </div>
+      <div class="stat-card">
+        <h3>{{ analytics.averageGPA.toFixed(2) }}</h3>
+        <p>Average GPA</p>
+      </div>
+    </div>
+
+    <div class="performance-breakdown">
+      <h3>Performance Levels</h3>
+      <div class="performance-bars">
+        <div class="bar-item">
+          <span class="label">Excellent (≥3.5):</span>
+          <div class="bar excellent" 
+               [style.width.%]="(analytics.performanceLevels.excellent / analytics.totalStudents) * 100">
+            {{ analytics.performanceLevels.excellent }}
+          </div>
+        </div>
+        <div class="bar-item">
+          <span class="label">Good (3.0-3.5):</span>
+          <div class="bar good" 
+               [style.width.%]="(analytics.performanceLevels.good / analytics.totalStudents) * 100">
+            {{ analytics.performanceLevels.good }}
+          </div>
+        </div>
+        <div class="bar-item">
+          <span class="label">Average (2.0-3.0):</span>
+          <div class="bar average" 
+               [style.width.%]="(analytics.performanceLevels.average / analytics.totalStudents) * 100">
+            {{ analytics.performanceLevels.average }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service Methods Demo -->
+  <div class="actions-section">
+    <h2>🚀 Service Methods</h2>
+    <div class="button-group">
+      <button (click)="loadData()" class="btn btn-primary">
+        Load All Students
+      </button>
+      <button (click)="loadHighPerformers()" class="btn btn-success">
+        Get High Performers (≥3.5 GPA)
+      </button>
+      <button (click)="refresh()" class="btn btn-secondary">
+        🔄 Refresh
+      </button>
+    </div>
+
+    <div class="search-section">
+      <input 
+        [(ngModel)]="searchQuery" 
+        (keyup.enter)="searchStudents()"
+        placeholder="Search students..."
+        class="search-input">
+      <button (click)="searchStudents()" class="btn btn-primary">
+        🔍 Search
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading$ | async" class="loading">
+    ⏳ Loading...
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error$ | async as error" class="error-alert">
+    ❌ {{ error }}
+  </div>
+
+  <!-- Students List -->
+  <div class="students-section">
+    <h2>Students</h2>
+    <div class="student-list">
+      <div class="student-item" *ngFor="let student of students$ | async">
+        <div class="student-info">
+          <strong>{{ student.name }}</strong>
+          <span class="email">{{ student.email }}</span>
+          <span class="gpa">GPA: {{ student.gpa.toFixed(2) }}</span>
+        </div>
+        <button (click)="loadPerformanceTrend(student.id)" class="btn btn-sm">
+          View Trend
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Trend -->
+  <div *ngIf="performanceTrend" class="trend-section">
+    <h3>Performance Trend</h3>
+    <p>Trend: <strong>{{ performanceTrend.trend }}</strong></p>
+    <div class="trend-data">
+      <div *ngFor="let semester of performanceTrend.semesters; let i = index" class="semester-data">
+        {{ semester }}: {{ performanceTrend.gpas[i].toFixed(2) }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Architecture Explanation -->
+  <div class="explanation-section">
+    <h3>🎓 Service Architecture Benefits</h3>
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <h4>1. Base API Service</h4>
+        <p>Common HTTP methods (GET, POST, PUT, DELETE) with error handling in one place</p>
+      </div>
+      <div class="benefit-card">
+        <h4>2. Feature Services</h4>
+        <p>StudentService, GradeService extend BaseApiService - no code duplication</p>
+      </div>
+      <div class="benefit-card">
+        <h4>3. Centralized Errors</h4>
+        <p>All API errors handled consistently with user-friendly messages</p>
+      </div>
+      <div class="benefit-card">
+        <h4>4. Reusable Methods</h4>
+        <p>searchStudents(), getHighPerformers() - domain-specific, reusable across components</p>
+      </div>
+      <div class="benefit-card">
+        <h4>5. Easy Testing</h4>
+        <p>Services can be mocked independently of components</p>
+      </div>
+      <div class="benefit-card">
+        <h4>6. Single Source of Truth</h4>
+        <p>Change API endpoint once, affects all consumers automatically</p>
+      </div>
+    </div>
+  </div>
+</div>

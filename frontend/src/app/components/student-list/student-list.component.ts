@@ -57,7 +57,10 @@ export class StudentListComponent implements OnInit {
     this.error = null;
     this.errorCode = '';
     
-    this.studentService.getStudents(this.currentPage, this.pageSize, this.filters)
+    this.studentService.getStudents(this.currentPage, this.pageSize, {
+      ...this.filters,
+      min_gpa: this.filters.min_gpa ?? undefined
+    })
       .subscribe({
         next: (response) => {
           // SUCCESS: Update data and clear loading

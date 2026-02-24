@@ -1,147 +1,129 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
-import { Observable, BehaviorSubject, throwError } from 'rxjs';
-import { tap, catchError, retry } from 'rxjs/operators';
+import { Observable, BehaviorSubject } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { BaseApiService } from './base-api.service';
 import { Student, PaginatedStudents } from '../models/student.interface';
-import { environment } from '../../environments/environment';
 
-export interface ApiError {
-  success: boolean;
-  error_code: string;
-  message: string;
-}
-
+/**
+ * Student API Service - handles all student-related API calls
+ * Extends BaseApiService for common HTTP methods and error handling
+ */
 @Injectable({
   providedIn: 'root'
 })
-export class StudentService {
-  private apiUrl = `${environment.apiBaseUrl}/api/students`;
-  
+export class StudentService extends BaseApiService {
+  // API endpoints
+  private readonly STUDENTS_ENDPOINT = '/api/students';
+
   // Reactive state management
   private studentsSubject = new BehaviorSubject<Student[]>([]);
   public students$ = this.studentsSubject.asObservable();
-  
+
   private totalStudentsSubject = new BehaviorSubject<number>(0);
   public totalStudents$ = this.totalStudentsSubject.asObservable();
-  
+
   private loadingSubject = new BehaviorSubject<boolean>(false);
   public loading$ = this.loadingSubject.asObservable();
-  
+
   private errorSubject = new BehaviorSubject<string | null>(null);
   public error$ = this.errorSubject.asObservable();
 
-  constructor(private http: HttpClient) {
-    console.log('🔧 StudentService initialized with API URL:', this.apiUrl);
-  }
-
   /**
-   * GET - Fetch students with pagination and filtering
+   * Fetch students with pagination and filtering
    */
-  getStudents(page: number = 1, limit: number = 10, filters?: any): Observable<PaginatedStudents> {
+  getStudents(
+    page: number = 1,
+    limit: number = 10,
+    filters?: {
+      status?: string;
+      department?: string;
+      min_gpa?: number;
+      search?: string;
+      sort_by?: string;
+      order?: string;
+    }
+  ): Observable<PaginatedStudents> {
     this.loadingSubject.next(true);
     this.errorSubject.next(null);
-    
-    let params = new HttpParams()
-      .set('page', page.toString())
-      .set('limit', limit.toString());
-    
-    if (filters) {
-      if (filters.status) params = params.set('status', filters.status);
-      if (filters.department) params = params.set('department', filters.department);
-      if (filters.min_gpa) params = params.set('min_gpa', filters.min_gpa.toString());
-      if (filters.search) params = params.set('search', filters.search);
-      if (filters.sort_by) params = params.set('sort_by', filters.sort_by);
-      if (filters.order) params = params.set('order', filters.order);
-    }
 
-    console.log('📡 Fetching students with params:', params.toString());
+    const params = this.buildParams({
+      page,
+      limit,
+      ...filters
+    });
 
-    return this.http.get<PaginatedStudents>(this.apiUrl, { params }).pipe(
-      retry(1), // Retry once on failure
+    return this.get<PaginatedStudents>(this.STUDENTS_ENDPOINT, params).pipe(
       tap(response => {
-        console.log('✅ Students fetched successfully:', response.total, 'total');
         this.studentsSubject.next(response.data);
         this.totalStudentsSubject.next(response.total);
         this.loadingSubject.next(false);
+        console.log('✅ Students loaded:', response.total);
       }),
-      catchError(this.handleError.bind(this))
+      tap({
+        error: (err) => {
+          this.loadingSubject.next(false);
+          this.errorSubject.next(err.message);
+        }
+      })
     );
   }
 
   /**
-   * GET - Fetch single student by ID
+   * Get single student by ID
    */
   getStudentById(id: number): Observable<Student> {
-    console.log('📡 Fetching student ID:', id);
-    
-    return this.http.get<Student>(`${this.apiUrl}/${id}`).pipe(
-      retry(1),
-      tap(student => console.log('✅ Student fetched:', student.name)),
-      catchError(this.handleError.bind(this))
-    );
+    return this.get<Student>(`${this.STUDENTS_ENDPOINT}/${id}`);
   }
 
   /**
-   * POST - Create new student
+   * Create new student
    */
   createStudent(student: Partial<Student>): Observable<any> {
-    console.log('📡 Creating student:', student.name);
-    
-    return this.http.post(this.apiUrl, student).pipe(
-      tap(response => console.log('✅ Student created:', response)),
-      catchError(this.handleError.bind(this))
+    return this.post(this.STUDENTS_ENDPOINT, student).pipe(
+      tap(() => console.log('✅ Student created'))
     );
   }
 
   /**
-   * PUT - Update student
+   * Update existing student
    */
   updateStudent(id: number, updates: Partial<Student>): Observable<any> {
-    console.log('📡 Updating student ID:', id, updates);
-    
-    return this.http.put(`${this.apiUrl}/${id}`, updates).pipe(
-      tap(response => console.log('✅ Student updated:', response)),
-      catchError(this.handleError.bind(this))
+    return this.put(`${this.STUDENTS_ENDPOINT}/${id}`, updates).pipe(
+      tap(() => console.log('✅ Student updated'))
     );
   }
 
   /**
-   * DELETE - Remove student
+   * Delete student
    */
   deleteStudent(id: number): Observable<any> {
-    console.log('📡 Deleting student ID:', id);
-    
-    return this.http.delete(`${this.apiUrl}/${id}`).pipe(
-      tap(response => console.log('✅ Student deleted:', response)),
-      catchError(this.handleError.bind(this))
+    return this.delete(`${this.STUDENTS_ENDPOINT}/${id}`).pipe(
+      tap(() => console.log('✅ Student deleted'))
     );
   }
 
   /**
-   * Centralized error handling
+   * Search students by name or email
    */
-  private handleError(error: HttpErrorResponse) {
-    this.loadingSubject.next(false);
-    
-    let errorMessage = 'An unknown error occurred';
-    
-    if (error.error instanceof ErrorEvent) {
-      // Client-side error
-      errorMessage = `Client Error: ${error.error.message}`;
-    } else {
-      // Server-side error
-      const apiError = error.error as ApiError;
-      
-      if (apiError && apiError.message) {
-        errorMessage = `${apiError.error_code || 'ERROR'}: ${apiError.message}`;
-      } else {
-        errorMessage = `HTTP ${error.status}: ${error.message}`;
-      }
-    }
-    
-    console.error('❌ API Error:', errorMessage, error);
-    this.errorSubject.next(errorMessage);
-    
-    return throwError(() => new Error(errorMessage));
+  searchStudents(query: string): Observable<PaginatedStudents> {
+    return this.getStudents(1, 20, { search: query });
+  }
+
+  /**
+   * Get students by department
+   */
+  getStudentsByDepartment(department: string): Observable<PaginatedStudents> {
+    return this.getStudents(1, 50, { department });
+  }
+
+  /**
+   * Get high-performing students
+   */
+  getHighPerformers(minGpa: number = 3.5): Observable<PaginatedStudents> {
+    return this.getStudents(1, 20, { 
+      min_gpa: minGpa,
+      sort_by: 'gpa',
+      order: 'desc'
+    });
   }
 }

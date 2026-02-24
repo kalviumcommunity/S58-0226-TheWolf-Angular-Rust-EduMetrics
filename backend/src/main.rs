@@ -1,19 +1,11 @@
 // src/main.rs — Assignment 3.32
-// ============================================================
-// Fixes applied:
-//   1. E0255: `middleware` name clash — removed `middleware` from
-//      actix_web use, import Logger explicitly instead
-//   2. E0433: futures_util removed — handled in auth.rs
-//   3. E0277: ResponseError now implemented in errors.rs
-// ============================================================
-
 
 use actix_cors::Cors;
 use actix_web::{
     get, post,
-    middleware::Logger,          // ← import Logger directly (fixes E0255 + Logger not found)
     web, App, HttpResponse, HttpServer, Responder,
 };
+use actix_web::middleware::Logger;
 use chrono::NaiveDate;
 use serde::Serialize;
 use std::env;
@@ -22,9 +14,7 @@ mod models;
 mod db;
 mod handlers;
 mod errors;
-mod middleware;                           // ← declare our module (no `as` here)
-
-use crate::middleware::ApiKeyAuth;       // ← import what we need directly
+mod middleware;
 
 use models::*;
 
@@ -106,9 +96,6 @@ async fn main() -> std::io::Result<()> {
     let port         = env::var("SERVER_PORT").unwrap_or_else(|_| "8080".into());
     let bind_address = format!("{}:{}", host, port);
 
-    let allowed_origin = env::var("ALLOWED_ORIGIN")
-        .unwrap_or_else(|_| "http://localhost:4200".into());
-
     let pool = match db::create_pool().await {
         Ok(p)  => { println!("✅ Database pool created"); p }
         Err(e) => { eprintln!("❌ Pool error: {:?}", e); std::process::exit(1); }
@@ -127,50 +114,50 @@ async fn main() -> std::io::Result<()> {
         database_status: "connected".into(),
     }).unwrap());
 
-HttpServer::new(move || {
-    App::new()
-        .app_data(web::Data::new(pool.clone()))
-        .app_data(
-            web::JsonConfig::default().error_handler(|err, _req| {
-                let body = errors::ErrorBody::new(
-                    "INVALID_JSON",
-                    format!("Could not parse request body: {}", err),
-                );
-                actix_web::error::InternalError::from_response(
-                    err, HttpResponse::BadRequest().json(body),
-                ).into()
-            }),
-        )
-        // ── CORS CONFIGURATION ──
-        .wrap(
-            Cors::default()
-                .allowed_origin("http://localhost:4200")
-                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-                .allowed_headers(vec![
-                    actix_web::http::header::AUTHORIZATION,
-                    actix_web::http::header::ACCEPT,
-                    actix_web::http::header::CONTENT_TYPE,
-                ])
-                .supports_credentials()
-                .max_age(3600)
-        )
-        .wrap(middleware::Logger::default())
-        .service(health_check)
-        .service(demo_serialize)
-        .service(demo_formats)
-        .route("/demo/deserialize", web::post().to(demo_deserialize))
-        .route("/demo/validation", web::post().to(demo_validation))
-        .service(
-            web::scope("/api")
-                .route("/students", web::get().to(handlers::get_all_students))
-                .route("/students", web::post().to(handlers::create_student))
-                .route("/students/{id}", web::get().to(handlers::get_student_by_id))
-                .route("/students/{id}", web::put().to(handlers::update_student))
-                .route("/students/{id}", web::delete().to(handlers::delete_student))
-                .route("/students/{id}/grades", web::get().to(handlers::get_student_grades))
-                .route("/students/{id}/grades", web::post().to(handlers::add_student_grade)),
-        )
-})
+    HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .app_data(
+                web::JsonConfig::default().error_handler(|err, _req| {
+                    let body = errors::ErrorBody::new(
+                        "INVALID_JSON",
+                        format!("Could not parse request body: {}", err),
+                    );
+                    actix_web::error::InternalError::from_response(
+                        err, HttpResponse::BadRequest().json(body),
+                    ).into()
+                }),
+            )
+            // ── CORS CONFIGURATION ──
+            .wrap(
+                Cors::default()
+                    .allowed_origin("http://localhost:4200")
+                    .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+                    .allowed_headers(vec![
+                        actix_web::http::header::AUTHORIZATION,
+                        actix_web::http::header::ACCEPT,
+                        actix_web::http::header::CONTENT_TYPE,
+                    ])
+                    .supports_credentials()
+                    .max_age(3600)
+            )
+            .wrap(Logger::default())          // ✅ Fix 1: use Logger directly, not middleware::Logger
+            .service(health_check)
+            .service(demo_serialize)
+            .service(demo_formats)
+            .service(demo_deserialize)        // ✅ Fix 2: use .service() instead of .route().to()
+            .service(demo_validation)         // ✅ Fix 3: use .service() instead of .route().to()
+            .service(
+                web::scope("/api")
+                    .route("/students", web::get().to(handlers::get_all_students))
+                    .route("/students", web::post().to(handlers::create_student))
+                    .route("/students/{id}", web::get().to(handlers::get_student_by_id))
+                    .route("/students/{id}", web::put().to(handlers::update_student))
+                    .route("/students/{id}", web::delete().to(handlers::delete_student))
+                    .route("/students/{id}/grades", web::get().to(handlers::get_student_grades))
+                    .route("/students/{id}/grades", web::post().to(handlers::add_student_grade)),
+            )
+    })
     .bind(&bind_address)?
     .run()
     .await

@@ -5,7 +5,9 @@ import { CounterDemoComponent } from './components/counter-demo/counter-demo.com
 import { StudentListComponent } from './components/student-list/student-list.component';
 import { ProductTileComponent } from './components/product-tile/product-tile.component';
 import { UserCardComponent } from './components/user-card/user-card.component';
-import { ApiDemoComponent } from '../app/components/api-demo/api-demo.component';
+import { ServiceDemoComponent } from './components/service-demo/service-demo.component';
+// Remove this line if not using:
+// import { ApiDemoComponent } from './components/api-demo/api-demo.component';
 
 @Component({
   selector: 'app-root',
@@ -17,17 +19,18 @@ import { ApiDemoComponent } from '../app/components/api-demo/api-demo.component'
     StudentListComponent,
     ProductTileComponent,
     UserCardComponent,
-    ApiDemoComponent
+    ServiceDemoComponent
+    // ApiDemoComponent  ← Remove this if not in template
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {
   title = 'EduMetrics - Component Architecture Demo';
-  currentView = 'api';
+  currentView = 'services';
 
   views = [
-    { id: 'api', name: '🔗 API Demo', component: 'api' },
+    { id: 'services', name: '🔧 Service Architecture', component: 'services' },
     { id: 'students', name: '📊 Students Dashboard', component: 'students' },
     { id: 'counter', name: '🔢 Counter Demo', component: 'counter' },
     { id: 'product', name: '🛒 Product Tile', component: 'product' },
