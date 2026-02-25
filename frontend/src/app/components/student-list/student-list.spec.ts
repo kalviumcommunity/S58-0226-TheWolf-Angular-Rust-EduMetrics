@@ -1,3 +1,4 @@
+//frontend/src/app/components/student-list/student-list.spec.ts
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { StudentList } from './student-list';

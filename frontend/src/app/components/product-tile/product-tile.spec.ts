@@ -1,3 +1,4 @@
+//frontend/src/app/components/product-tile/product-tile.spec.ts
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ProductTile } from './product-tile';

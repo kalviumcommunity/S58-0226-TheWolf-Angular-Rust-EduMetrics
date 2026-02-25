@@ -1,3 +1,4 @@
+//frontend/src/app/components/success-toast/success-toast.spec.ts
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { SuccessToast } from './success-toast';

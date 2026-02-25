@@ -1,4 +1,4 @@
-// src/main.rs — Assignment 3.32
+// src/main.rs
 
 use actix_cors::Cors;
 use actix_web::{

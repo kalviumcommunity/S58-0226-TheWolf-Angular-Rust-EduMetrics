@@ -1,3 +1,4 @@
+//backend/src/models/score.rs
 use serde::{Deserialize, Serialize};
 
 // ============================================================

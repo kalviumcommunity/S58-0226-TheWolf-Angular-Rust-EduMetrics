@@ -1,3 +1,4 @@
+//frontend/src/app/components/student-card/student-card.ts
 import { Component } from '@angular/core';
 
 @Component({

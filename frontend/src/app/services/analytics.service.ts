@@ -1,3 +1,4 @@
+//frontend/src/app/services/analytics.service.ts
 import { Injectable } from '@angular/core';
 import { Observable, combineLatest, map } from 'rxjs';
 import { BaseApiService } from './base-api.service';

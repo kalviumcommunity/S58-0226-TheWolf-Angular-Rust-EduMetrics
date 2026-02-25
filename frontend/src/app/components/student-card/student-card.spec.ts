@@ -1,3 +1,4 @@
+//frontend/src/app/components/student-card/student-card.spec.ts
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { StudentCard } from './student-card';

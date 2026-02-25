@@ -1,3 +1,4 @@
+//frontend/src/environments/environment.prod.ts
 // ============================================================
 // PRODUCTION ENVIRONMENT CONFIGURATION
 // Used when running: ng build --configuration production

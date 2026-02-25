@@ -1,43 +1,71 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, OnInit, inject } from '@angular/core';
+import { RouterOutlet, RouterModule, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { CounterDemoComponent } from './components/counter-demo/counter-demo.component';
-import { StudentListComponent } from './components/student-list/student-list.component';
-import { ProductTileComponent } from './components/product-tile/product-tile.component';
-import { UserCardComponent } from './components/user-card/user-card.component';
-import { ServiceDemoComponent } from './components/service-demo/service-demo.component';
-// Remove this line if not using:
-// import { ApiDemoComponent } from './components/api-demo/api-demo.component';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [
-    RouterOutlet, 
-    CommonModule,
-    CounterDemoComponent,
-    StudentListComponent,
-    ProductTileComponent,
-    UserCardComponent,
-    ServiceDemoComponent
-    // ApiDemoComponent  ← Remove this if not in template
-  ],
+  imports: [RouterOutlet, RouterModule, CommonModule],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent {
-  title = 'EduMetrics - Component Architecture Demo';
-  currentView = 'services';
+export class AppComponent implements OnInit {
+  title = 'EduMetrics';
+  private router = inject(Router);
 
-  views = [
-    { id: 'services', name: '🔧 Service Architecture', component: 'services' },
-    { id: 'students', name: '📊 Students Dashboard', component: 'students' },
-    { id: 'counter', name: '🔢 Counter Demo', component: 'counter' },
-    { id: 'product', name: '🛒 Product Tile', component: 'product' },
-    { id: 'user', name: '👤 User Card', component: 'user' }
+  showNav        = false;
+  mobileMenuOpen = false;
+  userName       = '';
+  userRole       = '';
+  userAvatar     = '';
+
+  navLinks = [
+    { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+    { path: '/students',  label: 'Students',  icon: '🎓' },
+    { path: '/services',  label: 'Services',  icon: '🔧' },
+    { path: '/counter',   label: 'Counter',   icon: '🔢' },
+    { path: '/product',   label: 'Product',   icon: '🛒' },
+    { path: '/user',      label: 'Profile',   icon: '👤' },
   ];
 
-  switchView(viewId: string) {
-    this.currentView = viewId;
+  private loadUserFromStorage(): void {
+    try {
+      const raw = localStorage.getItem('edumetrics_user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        this.userName   = u.name   || '';
+        this.userRole   = u.role   || '';
+        this.userAvatar = u.avatar || '';
+      }
+    } catch { /* ignore */ }
+  }
+
+  private isLoggedIn(): boolean {
+    return !!localStorage.getItem('edumetrics_user');
+  }
+
+  ngOnInit(): void {
+    this.loadUserFromStorage();
+    const authRoutes = ['/login', '/signup'];
+    this.showNav = this.isLoggedIn() && !authRoutes.includes(this.router.url);
+
+    this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe((e: any) => {
+        this.loadUserFromStorage();
+        this.showNav       = this.isLoggedIn() && !authRoutes.includes(e.url);
+        this.mobileMenuOpen = false;
+      });
+  }
+
+  logout(): void {
+    localStorage.removeItem('edumetrics_user');
+    this.showNav = false;
+    this.router.navigate(['/login']);
+  }
+
+  toggleMobileMenu(): void {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
   }
 }

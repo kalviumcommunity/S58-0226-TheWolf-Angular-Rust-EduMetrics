@@ -1,3 +1,4 @@
+//frontend/src/app/components/counter-demo/counter-demo.component.ts
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 

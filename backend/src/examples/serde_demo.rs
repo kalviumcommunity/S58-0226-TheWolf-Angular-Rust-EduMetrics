@@ -1,3 +1,4 @@
+//backend/src/examples/serde_demo.rs
 use serde::{Deserialize, Serialize};
 
 // ============================================================

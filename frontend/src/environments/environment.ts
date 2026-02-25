@@ -1,3 +1,4 @@
+//frontend/src/environments/environment.ts
 // ============================================================
 // DEVELOPMENT ENVIRONMENT CONFIGURATION
 // Used when running: ng serve

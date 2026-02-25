@@ -1,3 +1,4 @@
+//frontend/src/app/components/product-tile/product-tile.component.ts
 import { Component } from '@angular/core';
 
 @Component({

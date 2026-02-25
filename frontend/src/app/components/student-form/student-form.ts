@@ -1,3 +1,4 @@
+//frontend/src/app/components/student-form/student-form.ts
 import { Component } from '@angular/core';
 
 @Component({

@@ -1,3 +1,4 @@
+//frontend/src/app/components/student-card/student-card.component.ts
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Student } from '../../models/student.interface';

@@ -1,3 +1,4 @@
+//backend/src/models/attendance.rs
 use serde::{Deserialize, Serialize};
 use super::student::AttendanceStatus;
 
