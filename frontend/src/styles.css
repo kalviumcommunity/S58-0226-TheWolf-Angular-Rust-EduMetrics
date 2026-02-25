@@ -1,0 +1,52 @@
+/* frontend/src/styles.css */
+
+/* ── Reset & Base ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'DM Sans', 'Outfit', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f6f7fb;
+  color: #0d0f14;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #c9a84c44; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #c9a84c; }
+
+/* ── Links ── */
+a { color: inherit; }
+
+/* ── Focus ring ── */
+:focus-visible {
+  outline: 2px solid #c9a84c;
+  outline-offset: 2px;
+}
+
+/* ── Button reset ── */
+button { font-family: inherit; }
+
+/* ── CSS Variables ── */
+:root {
+  --ink: #0d0f14;
+  --gold: #c9a84c;
+  --teal: #0f8a8a;
+  --rose: #c94040;
+  --surface: #ffffff;
+  --muted: #6b7a99;
+  --border: #e5e7eb;
+  --bg: #f6f7fb;
+  --nav-height: 60px;
+}

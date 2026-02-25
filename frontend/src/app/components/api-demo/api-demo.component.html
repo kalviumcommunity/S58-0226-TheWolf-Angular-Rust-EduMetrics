@@ -1,0 +1,205 @@
+<!-- //frontend/src/app/components/api-demo/api-demo.component.html -->
+<div class="api-demo-container">
+  <h1>🔗 Angular ↔ Rust API Communication Demo</h1>
+  <p class="subtitle">Assignment 3.33 - HttpClient Integration</p>
+
+  <!-- Loading Indicator -->
+  <div class="loading-banner" *ngIf="loading$ | async">
+    ⏳ Loading...
+  </div>
+
+  <!-- Error Banner -->
+  <div class="error-banner" *ngIf="error$ | async as error">
+    ❌ {{ error }}
+  </div>
+
+  <div class="demo-grid">
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- GET REQUEST DEMO -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="demo-section">
+      <h2>📥 GET Requests</h2>
+      
+      <button (click)="loadStudents()" class="btn btn-primary">
+        Fetch All Students
+      </button>
+
+      <div class="student-list" *ngIf="students.length > 0">
+        <div class="student-item" *ngFor="let student of students">
+          <div class="student-info">
+            <strong>{{ student.name }}</strong>
+            <span class="email">{{ student.email }}</span>
+            <span class="gpa">GPA: {{ student.gpa }}</span>
+          </div>
+          <button (click)="loadStudent(student.id)" class="btn btn-sm">
+            Details
+          </button>
+        </div>
+      </div>
+
+      <!-- Single Student Details -->
+      <div class="student-details" *ngIf="selectedStudent">
+        <h3>Student Details</h3>
+        <p><strong>ID:</strong> {{ selectedStudent.id }}</p>
+        <p><strong>Name:</strong> {{ selectedStudent.name }}</p>
+        <p><strong>Email:</strong> {{ selectedStudent.email }}</p>
+        <p><strong>Department:</strong> {{ selectedStudent.department }}</p>
+        <p><strong>Status:</strong> {{ selectedStudent.status }}</p>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- POST REQUEST DEMO -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="demo-section">
+      <h2>📤 POST Request - Create Student</h2>
+      
+      <div class="form-group">
+        <label>Name:</label>
+        <input 
+          [(ngModel)]="newStudent.name" 
+          placeholder="Enter name"
+          class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label>Email:</label>
+        <input 
+          [(ngModel)]="newStudent.email" 
+          type="email"
+          placeholder="Enter email"
+          class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label>Department:</label>
+        <select [(ngModel)]="newStudent.department" class="form-input">
+          <option>Computer Science</option>
+          <option>Mathematics</option>
+          <option>Physics</option>
+          <option>Engineering</option>
+        </select>
+      </div>
+
+      <button (click)="createStudent()" class="btn btn-success">
+        Create Student
+      </button>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- PUT REQUEST DEMO -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="demo-section">
+      <h2>✏️ PUT Request - Update Student</h2>
+      
+      <div class="form-group">
+        <label>Student ID to Update:</label>
+        <input 
+          type="number" 
+          #studentId
+          placeholder="Enter ID"
+          class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label>New Name (optional):</label>
+        <input 
+          [(ngModel)]="updateData.name" 
+          placeholder="New name"
+          class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label>New Email (optional):</label>
+        <input 
+          [(ngModel)]="updateData.email" 
+          type="email"
+          placeholder="New email"
+          class="form-input">
+      </div>
+
+      <button 
+        (click)="updateStudent(+studentId.value)" 
+        class="btn btn-warning">
+        Update Student
+      </button>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════ -->
+    <!-- DELETE REQUEST DEMO -->
+    <!-- ════════════════════════════════════════════════════ -->
+    <div class="demo-section">
+      <h2>🗑️ DELETE Request</h2>
+      
+      <p>Select a student from the list to delete:</p>
+      
+      <div class="student-list" *ngIf="students.length > 0">
+        <div class="student-item" *ngFor="let student of students">
+          <div class="student-info">
+            <strong>{{ student.name }}</strong>
+          </div>
+          <button 
+            (click)="deleteStudent(student.id, student.name)" 
+            class="btn btn-danger btn-sm">
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- REQUEST LOG CONSOLE -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="log-console">
+    <div class="log-header">
+      <h3>📋 Request Log</h3>
+      <button (click)="clearLogs()" class="btn btn-sm">Clear</button>
+    </div>
+    
+    <div class="log-entries">
+      <div class="log-entry" *ngFor="let log of requestLogs">
+        {{ log }}
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- EXPLANATION SECTION -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="explanation-section">
+    <h3>🎓 What's Happening Here?</h3>
+    
+    <div class="explanation-grid">
+      <div class="explanation-card">
+        <h4>1. HttpClient Service</h4>
+        <p>Angular's HttpClient sends HTTP requests to the Rust backend at <code>http://localhost:8080</code></p>
+      </div>
+
+      <div class="explanation-card">
+        <h4>2. Observable Pattern</h4>
+        <p>All API calls return Observables. Components <code>.subscribe()</code> to receive data asynchronously</p>
+      </div>
+
+      <div class="explanation-card">
+        <h4>3. CORS Configuration</h4>
+        <p>Rust backend allows requests from <code>localhost:4200</code> with proper CORS headers</p>
+      </div>
+
+      <div class="explanation-card">
+        <h4>4. Error Handling</h4>
+        <p>Failed requests are caught, logged, and displayed to the user with helpful messages</p>
+      </div>
+
+      <div class="explanation-card">
+        <h4>5. Type Safety</h4>
+        <p>TypeScript interfaces ensure requests and responses match expected structure</p>
+      </div>
+
+      <div class="explanation-card">
+        <h4>6. Request Flow</h4>
+        <p>Component → Service → HttpClient → Rust API → PostgreSQL → JSON Response → UI Update</p>
+      </div>
+    </div>
+  </div>
+</div>

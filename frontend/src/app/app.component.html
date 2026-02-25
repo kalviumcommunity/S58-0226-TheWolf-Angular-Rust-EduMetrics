@@ -1,0 +1,47 @@
+<nav class="top-nav" *ngIf="showNav">
+  <div class="nav-inner">
+    <a routerLink="/dashboard" class="nav-brand">
+      <span class="nav-logo-icon">⚡</span>
+      <span class="nav-logo-text">EduMetrics</span>
+    </a>
+
+    <ul class="nav-links">
+      <li *ngFor="let link of navLinks">
+        <a [routerLink]="link.path" routerLinkActive="active" class="nav-link">
+          <span class="nav-link-icon">{{ link.icon }}</span>
+          {{ link.label }}
+        </a>
+      </li>
+    </ul>
+
+    <div class="nav-user">
+      <img
+        [src]="userAvatar || 'https://ui-avatars.com/api/?name=User&background=0f8a8a&color=fff'"
+        [alt]="userName"
+        class="user-avatar"
+      />
+      <div class="user-info">
+        <span class="user-name">{{ userName }}</span>
+        <span class="user-role">{{ userRole }}</span>
+      </div>
+      <button class="btn-logout" (click)="logout()" title="Sign out">↩</button>
+    </div>
+
+    <button class="mobile-menu-btn" (click)="toggleMobileMenu()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <div class="mobile-menu" [class.open]="mobileMenuOpen">
+    <a *ngFor="let link of navLinks"
+      [routerLink]="link.path" routerLinkActive="active"
+      class="mobile-link" (click)="mobileMenuOpen = false">
+      {{ link.icon }} {{ link.label }}
+    </a>
+    <button class="mobile-logout" (click)="logout()">↩ Sign Out</button>
+  </div>
+</nav>
+
+<div [class.with-nav]="showNav">
+  <router-outlet />
+</div>

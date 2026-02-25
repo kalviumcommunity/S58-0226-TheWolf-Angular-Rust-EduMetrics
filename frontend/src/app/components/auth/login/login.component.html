@@ -1,0 +1,70 @@
+<div class="auth-shell">
+  <aside class="brand-panel">
+    <div class="brand-inner">
+      <div class="brand-logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">EduMetrics</span>
+      </div>
+      <h1 class="brand-headline">Academic intelligence,<br><em>amplified.</em></h1>
+      <p class="brand-sub">Track performance. Spot trends. Empower every student.</p>
+      <div class="brand-stats">
+        <div class="stat-pill"><span class="stat-num">2,400+</span><span class="stat-label">Students tracked</span></div>
+        <div class="stat-pill"><span class="stat-num">98%</span><span class="stat-label">Accuracy rate</span></div>
+        <div class="stat-pill"><span class="stat-num">40+</span><span class="stat-label">Departments</span></div>
+      </div>
+      <div class="brand-deco">
+        <div class="deco-ring r1"></div>
+        <div class="deco-ring r2"></div>
+        <div class="deco-ring r3"></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="form-panel">
+    <div class="form-card">
+      <div class="form-header">
+        <h2>Welcome back</h2>
+        <p>Sign in to your EduMetrics account</p>
+      </div>
+
+      <button type="button" class="demo-banner" (click)="fillDemo()">
+        <span class="demo-icon">🎯</span>
+        <span>Use demo credentials</span>
+        <span class="demo-arrow">→</span>
+      </button>
+
+      <div class="form-error" *ngIf="errorMsg">⚠ {{ errorMsg }}</div>
+
+      <form (ngSubmit)="onSubmit()" novalidate>
+        <div class="field-group">
+          <label for="email">Email address</label>
+          <div class="field-wrap">
+            <span class="field-icon">✉</span>
+            <input id="email" type="email" name="email" [(ngModel)]="email"
+              placeholder="you@example.com" autocomplete="email" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="password">Password</label>
+          <div class="field-wrap">
+            <span class="field-icon">🔒</span>
+            <input id="password" [type]="showPassword ? 'text' : 'password'"
+              name="password" [(ngModel)]="password"
+              placeholder="Enter your password" autocomplete="current-password" />
+            <button type="button" class="toggle-pw" (click)="togglePassword()">
+              {{ showPassword ? '🙈' : '👁' }}
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" [disabled]="loading">
+          <span *ngIf="!loading">Sign In</span>
+          <span *ngIf="loading">⏳ Signing in…</span>
+        </button>
+      </form>
+
+      <p class="switch-link">Don't have an account? <a routerLink="/signup">Create one →</a></p>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,69 @@
+<!-- //frontend/src/app/components/product-tile/product-tile.component.html -->
+<div class="product-tile">
+  <!-- Product Image -->
+  <div class="product-image">
+    <img [src]="imageUrl" [alt]="productName">
+    
+    <!-- Stock badge using *ngIf -->
+    <span class="stock-badge" *ngIf="inStock">In Stock</span>
+    <span class="stock-badge out-of-stock" *ngIf="!inStock">Out of Stock</span>
+  </div>
+
+  <!-- Product Info -->
+  <div class="product-info">
+    <!-- Interpolation - displays data -->
+    <h3>{{ productName }}</h3>
+    <p class="description">{{ description }}</p>
+    
+    <div class="price-section">
+      <span class="price">${{ price.toFixed(2) }}</span>
+      <span class="per-unit">per month</span>
+    </div>
+
+    <!-- Quantity Controls -->
+    <div class="quantity-controls">
+      <label>Quantity:</label>
+      <div class="quantity-buttons">
+        <!-- Event binding - handles clicks -->
+        <button (click)="decreaseQuantity()" [disabled]="quantity <= 1">
+          -
+        </button>
+        <span class="quantity-display">{{ quantity }}</span>
+        <button (click)="increaseQuantity()">
+          +
+        </button>
+      </div>
+    </div>
+
+    <!-- Total Price (computed) -->
+    <div class="total-section">
+      <strong>Total: ${{ getTotalPrice().toFixed(2) }}</strong>
+    </div>
+
+    <!-- Add to Cart Button with dynamic class -->
+    <button 
+      (click)="addToCart()" 
+      [class]="getButtonClass()"
+      [disabled]="!inStock">
+      {{ getButtonText() }}
+    </button>
+
+    <!-- Success message using *ngIf -->
+    <div class="success-message" *ngIf="added">
+      <p>✓ Item added to your cart!</p>
+    </div>
+  </div>
+</div>
+
+<!-- Component Explanation Card -->
+<div class="explanation-card">
+  <h4>What's Happening Here?</h4>
+  <ul>
+    <li><strong>Interpolation:</strong> {{ "{{ productName }}" }} displays reactive data</li>
+    <li><strong>Property Binding:</strong> [src]="imageUrl" sets element properties</li>
+    <li><strong>Event Binding:</strong> (click)="addToCart()" handles user actions</li>
+    <li><strong>*ngIf:</strong> Conditionally shows/hides elements</li>
+    <li><strong>Dynamic Classes:</strong> [class] changes based on state</li>
+    <li><strong>Computed Values:</strong> getTotalPrice() calculates on the fly</li>
+  </ul>
+</div>

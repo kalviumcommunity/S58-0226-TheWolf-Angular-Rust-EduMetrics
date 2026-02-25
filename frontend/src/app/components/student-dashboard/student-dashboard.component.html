@@ -1,0 +1,141 @@
+<div class="dashboard-container">
+
+  <div class="page-header">
+    <div>
+      <h1>Dashboard</h1>
+      <p class="page-subtitle" *ngIf="userName">Welcome back, {{ userName }}!</p>
+    </div>
+    <button class="btn-refresh" (click)="loadStudents()">🔄 Refresh</button>
+  </div>
+
+  <div class="loading-banner" *ngIf="loading$ | async">
+    <div class="spinner"></div><span>Loading student data…</span>
+  </div>
+
+  <div class="error-banner" *ngIf="error$ | async as errorMsg">
+    <span>⚠️ {{ errorMsg }}</span>
+    <button (click)="retryLoad()">Retry</button>
+  </div>
+
+  <section class="stats-grid" *ngIf="stats$ | async as stats">
+    <div class="stat-card ink">
+      <div class="stat-icon">🎓</div>
+      <div class="stat-value">{{ stats.totalStudents }}</div>
+      <div class="stat-label">Total Students</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-icon">✅</div>
+      <div class="stat-value">{{ stats.activeStudents }}</div>
+      <div class="stat-label">Active</div>
+    </div>
+    <div class="stat-card teal">
+      <div class="stat-icon">📈</div>
+      <div class="stat-value">{{ stats.averageGpa | number:'1.2-2' }}</div>
+      <div class="stat-label">Avg GPA</div>
+    </div>
+    <div class="stat-card rose">
+      <div class="stat-icon">⭐</div>
+      <div class="stat-value">{{ stats.topPerformers.length }}</div>
+      <div class="stat-label">High Performers</div>
+    </div>
+  </section>
+
+  <section class="filter-bar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search by name or email…"
+        [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange($event)"
+        class="search-input" />
+    </div>
+    <select [(ngModel)]="selectedStatus" (ngModelChange)="applyFilter()" class="filter-select">
+      <option value="">All Statuses</option>
+      <option value="active">Active</option>
+      <option value="suspended">Suspended</option>
+      <option value="graduated">Graduated</option>
+      <option value="withdrawn">Withdrawn</option>
+    </select>
+    <select [(ngModel)]="selectedDepartment" (ngModelChange)="applyFilter()" class="filter-select">
+      <option value="">All Departments</option>
+      <option value="Computer Science">Computer Science</option>
+      <option value="Mathematics">Mathematics</option>
+      <option value="Physics">Physics</option>
+      <option value="Engineering">Engineering</option>
+    </select>
+    <select [(ngModel)]="sortBy" (ngModelChange)="applyFilter()" class="filter-select">
+      <option value="id">Sort by ID</option>
+      <option value="name">Sort by Name</option>
+      <option value="gpa">Sort by GPA</option>
+      <option value="enrollment_date">Sort by Date</option>
+    </select>
+    <button class="btn-clear" (click)="clearFilters()">✕ Clear</button>
+  </section>
+
+  <section class="students-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        Students
+        <span class="count-badge" *ngIf="totalStudents$ | async as total">({{ total }})</span>
+      </h2>
+    </div>
+
+    <div class="empty-state"
+      *ngIf="(students$ | async)?.length === 0 && !(loading$ | async)">
+      <div class="empty-icon">📭</div>
+      <p>No students found. Try adjusting your filters.</p>
+      <button class="btn-clear" (click)="clearFilters()">Clear Filters</button>
+    </div>
+
+    <div class="student-grid">
+      <div class="student-card"
+        *ngFor="let student of students$ | async"
+        [class.selected]="selectedStudentId === student.id">
+        <div class="sc-header">
+          <span class="sc-status" [class]="'sc-' + student.status">{{ student.status }}</span>
+          <div class="sc-gpa" [ngClass]="getGpaClass(student.gpa)">{{ student.gpa | number:'1.1-2' }}</div>
+        </div>
+        <div class="sc-body">
+          <div class="sc-name">{{ student.name }}</div>
+          <div class="sc-email">{{ student.email }}</div>
+          <div class="sc-dept" *ngIf="student.department">{{ student.department }}</div>
+          <div class="sc-perf">{{ student.performance_level }}</div>
+        </div>
+        <div class="sc-actions">
+          <button class="btn-icon" (click)="viewGrades(student.id)">
+            {{ selectedStudentId === student.id ? '📂' : '📊' }} Grades
+          </button>
+          <button class="btn-icon btn-del" (click)="deleteStudent(student.id)">🗑</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="pagination" *ngIf="totalPages$ | async as totalPages">
+      <button [disabled]="currentPage <= 1" (click)="prevPage()" class="pg-btn">← Prev</button>
+      <span class="pg-info">Page {{ currentPage }} of {{ totalPages }}</span>
+      <button [disabled]="currentPage >= totalPages" (click)="nextPage()" class="pg-btn">Next →</button>
+    </div>
+  </section>
+
+  <section class="grades-panel" *ngIf="selectedStudentId">
+    <div class="section-header">
+      <h2 class="section-title">Grades for Student #{{ selectedStudentId }}</h2>
+      <button class="btn-clear" (click)="selectedStudentId = null">✕ Close</button>
+    </div>
+    <div class="loading-banner" *ngIf="gradesLoading">
+      <div class="spinner"></div><span>Loading grades…</span>
+    </div>
+    <div class="grades-grid" *ngIf="!gradesLoading && selectedGrades.length > 0">
+      <div class="grade-card" *ngFor="let grade of selectedGrades">
+        <div class="gr-semester">{{ grade.semester }}</div>
+        <div class="gr-gpa">{{ grade.semester_gpa | number:'1.2-2' }}</div>
+        <div class="gr-credits">{{ grade.credits }} credits</div>
+        <div class="gr-standing">{{ grade.standing }}</div>
+      </div>
+    </div>
+    <div class="empty-state" *ngIf="!gradesLoading && selectedGrades.length === 0">
+      <div class="empty-icon">📝</div>
+      <p>No grades recorded for this student yet.</p>
+    </div>
+  </section>
+
+  <div class="success-toast" *ngIf="successMessage">✅ {{ successMessage }}</div>
+</div>
